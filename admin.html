@@ -6,6 +6,7 @@
   <title>預約管理後台</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
   <style>
     .btn {
       min-height: 44px;
@@ -28,13 +29,36 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    /* FullCalendar 樣式調整 */
+    .fc {
+      font-size: 12px;
+    }
+    .fc .fc-toolbar-title {
+      font-size: 16px;
+    }
+    .fc .fc-button {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .fc-event-pending {
+      background-color: #f59e0b !important;
+      border-color: #d97706 !important;
+    }
+    .fc-event-confirmed {
+      background-color: #10b981 !important;
+      border-color: #059669 !important;
+    }
+    .fc-event-busy {
+      background-color: #6b7280 !important;
+      border-color: #4b5563 !important;
+    }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
   
   <!-- 頂部導航 -->
   <header class="bg-white shadow-sm">
-    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
       <h1 class="text-xl font-bold text-gray-800">🔧 預約管理後台</h1>
       <div id="admin-info" class="flex items-center gap-3">
         <!-- 登入後顯示 -->
@@ -42,7 +66,7 @@
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-6">
+  <main class="max-w-5xl mx-auto px-4 py-6">
     
     <!-- 未登入狀態 -->
     <div id="login-section" class="text-center py-12 bg-white rounded-xl shadow-sm">
@@ -73,21 +97,38 @@
         </div>
       </div>
       
-      <!-- 待審核列表 -->
-      <div class="bg-white rounded-xl shadow-sm">
-        <div class="px-4 py-3 border-b flex items-center justify-between">
-          <h2 class="font-bold text-gray-800">📋 待審核申請</h2>
-          <button onclick="loadPendingRequests()" class="text-sm text-blue-600 hover:underline">重新整理</button>
+      <!-- 兩欄佈局：行事曆 + 待審核 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- 行事曆 -->
+        <div class="bg-white rounded-xl shadow-sm p-4">
+          <h2 class="font-bold text-gray-800 mb-3">📅 行事曆總覽</h2>
+          <p class="text-xs text-gray-500 mb-3">點選日期查看該時段行程</p>
+          <div id="admin-calendar"></div>
+          <div class="mt-3 flex gap-4 text-xs">
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-amber-500"></span> 待審核</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-green-500"></span> 已確認</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-gray-500"></span> 忙碌</span>
+          </div>
         </div>
-        <div id="pending-list" class="p-4">
-          <div class="text-center py-8 text-gray-500">載入中...</div>
+        
+        <!-- 待審核列表 -->
+        <div class="bg-white rounded-xl shadow-sm">
+          <div class="px-4 py-3 border-b flex items-center justify-between">
+            <h2 class="font-bold text-gray-800">📋 待審核申請</h2>
+            <button onclick="loadPendingRequests()" class="text-sm text-blue-600 hover:underline">重新整理</button>
+          </div>
+          <div id="pending-list" class="p-4 max-h-96 overflow-y-auto">
+            <div class="text-center py-8 text-gray-500">載入中...</div>
+          </div>
         </div>
       </div>
       
       <!-- 所有預約 -->
       <div class="bg-white rounded-xl shadow-sm">
-        <div class="px-4 py-3 border-b">
-          <h2 class="font-bold text-gray-800">📅 所有預約記錄</h2>
+        <div class="px-4 py-3 border-b flex items-center justify-between">
+          <h2 class="font-bold text-gray-800">📋 所有預約記錄</h2>
+          <button onclick="loadAllBookings()" class="text-sm text-blue-600 hover:underline">重新整理</button>
         </div>
         <div id="all-bookings" class="p-4">
           <div class="text-center py-8 text-gray-500">載入中...</div>
@@ -103,6 +144,17 @@
     </div>
   </main>
 
+  <!-- 日期詳情 Modal -->
+  <div id="date-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50" onclick="closeDateModal(event)">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg" id="modal-date-title">日期詳情</h3>
+        <button onclick="closeDateModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <div id="modal-content">載入中...</div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg hidden"></div>
 
@@ -112,6 +164,8 @@
     const GOOGLE_CLIENT_ID = '265200476894-8l4n76mpki2hstv909729uaoao5rh065.apps.googleusercontent.com';
     
     let currentAdmin = null;
+    let adminCalendar = null;
+    let allBookingsData = [];
 
     // 登入
     document.getElementById('admin-login-btn').addEventListener('click', () => {
@@ -157,6 +211,7 @@
         <button onclick="logout()" class="text-sm text-red-500">登出</button>
       `;
       
+      initCalendar();
       loadPendingRequests();
       loadAllBookings();
     }
@@ -164,6 +219,144 @@
     function logout() {
       currentAdmin = null;
       location.reload();
+    }
+
+    // 初始化行事曆
+    function initCalendar() {
+      const calendarEl = document.getElementById('admin-calendar');
+      adminCalendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'zh-tw',
+        height: 'auto',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: ''
+        },
+        dateClick: function(info) {
+          showDateDetail(info.dateStr);
+        },
+        events: async function(info, successCallback, failureCallback) {
+          try {
+            // 取得預約事件
+            const res = await fetch(`${API_URL}?action=getAllBookings`);
+            const bookings = await res.json();
+            
+            const events = bookings.map(b => ({
+              title: `${b.name} - ${b.purpose || '預約'}`,
+              start: b.startTime,
+              end: b.endTime,
+              classNames: [b.status === 'confirmed' ? 'fc-event-confirmed' : 'fc-event-pending'],
+              extendedProps: { booking: b }
+            }));
+            
+            // 同時取得忙碌時段
+            const startDate = info.startStr.split('T')[0];
+            const endDate = info.endStr.split('T')[0];
+            
+            // 逐日取得忙碌時段（簡化版）
+            const busyRes = await fetch(`${API_URL}?action=getSlots&date=${startDate}`);
+            const slots = await busyRes.json();
+            
+            if (slots.busySlots) {
+              slots.busySlots.forEach(busy => {
+                events.push({
+                  title: '忙碌',
+                  start: busy.start,
+                  end: busy.end,
+                  classNames: ['fc-event-busy'],
+                  display: 'background'
+                });
+              });
+            }
+            
+            successCallback(events);
+          } catch(e) {
+            console.error('載入行事曆失敗', e);
+            failureCallback(e);
+          }
+        }
+      });
+      adminCalendar.render();
+    }
+
+    // 顯示日期詳情
+    async function showDateDetail(dateStr) {
+      const modal = document.getElementById('date-modal');
+      const title = document.getElementById('modal-date-title');
+      const content = document.getElementById('modal-content');
+      
+      const d = new Date(dateStr);
+      title.textContent = d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+      content.innerHTML = '<div class="text-center py-4"><div class="spinner mx-auto"></div></div>';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      
+      try {
+        // 取得該日的時段資訊
+        const res = await fetch(`${API_URL}?action=getSlots&date=${dateStr}`);
+        const data = await res.json();
+        
+        let html = '';
+        
+        // 顯示忙碌時段
+        if (data.busySlots && data.busySlots.length > 0) {
+          html += '<div class="mb-4">';
+          html += '<h4 class="font-bold text-gray-700 mb-2">📅 已有行程</h4>';
+          html += '<div class="space-y-2">';
+          data.busySlots.forEach(busy => {
+            const start = new Date(busy.start).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+            const end = new Date(busy.end).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+            html += `<div class="bg-gray-100 rounded p-2 text-sm">
+              <span class="font-medium">${start} ~ ${end}</span>
+              ${busy.title ? `<span class="text-gray-600 ml-2">${busy.title}</span>` : ''}
+            </div>`;
+          });
+          html += '</div></div>';
+        }
+        
+        // 顯示該日預約
+        if (data.pendingSlots && data.pendingSlots.length > 0) {
+          html += '<div class="mb-4">';
+          html += '<h4 class="font-bold text-amber-600 mb-2">⏳ 待審核預約</h4>';
+          html += '<div class="space-y-2">';
+          data.pendingSlots.forEach(pending => {
+            const start = new Date(pending.start).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+            const end = new Date(pending.end).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+            html += `<div class="bg-amber-50 border border-amber-200 rounded p-2 text-sm">
+              <span class="font-medium">${start} ~ ${end}</span>
+            </div>`;
+          });
+          html += '</div></div>';
+        }
+        
+        // 顯示可用時段
+        if (data.availableSlots && data.availableSlots.length > 0) {
+          html += '<div>';
+          html += '<h4 class="font-bold text-green-600 mb-2">✅ 可預約時段</h4>';
+          html += '<div class="flex flex-wrap gap-2">';
+          data.availableSlots.forEach(slot => {
+            const start = new Date(slot.start).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+            html += `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-sm">${start}</span>`;
+          });
+          html += '</div></div>';
+        }
+        
+        if (!html) {
+          html = '<p class="text-gray-500 text-center">無資料</p>';
+        }
+        
+        content.innerHTML = html;
+      } catch(e) {
+        content.innerHTML = '<p class="text-red-500 text-center">載入失敗</p>';
+      }
+    }
+
+    function closeDateModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      const modal = document.getElementById('date-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
     }
 
     // 載入待審核
@@ -183,23 +376,23 @@
         }
         
         list.innerHTML = data.map(b => `
-          <div class="border rounded-lg p-4 mb-3" id="booking-${b.id}">
+          <div class="border rounded-lg p-3 mb-3" id="booking-${b.id}">
             <div class="flex justify-between items-start mb-2">
               <div>
-                <p class="font-bold text-lg">${b.name}</p>
-                <p class="text-sm text-gray-500">${b.email}</p>
+                <p class="font-bold">${b.name}</p>
+                <p class="text-xs text-gray-500">${b.email}</p>
               </div>
               <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">待審核</span>
             </div>
-            <div class="bg-gray-50 rounded p-2 mb-3">
-              <p class="text-sm"><strong>時間：</strong>${formatDateTime(b.startTime)} ~ ${formatTime(b.endTime)}</p>
-              <p class="text-sm"><strong>事由：</strong>${b.purpose || '未填寫'}</p>
+            <div class="bg-gray-50 rounded p-2 mb-2 text-sm">
+              <p><strong>時間：</strong>${formatDateTime(b.startTime)} ~ ${formatTime(b.endTime)}</p>
+              <p><strong>事由：</strong>${b.purpose || '未填寫'}</p>
             </div>
             <div class="flex gap-2">
-              <button onclick="confirmBooking('${b.id}')" class="btn flex-1 bg-green-600 text-white py-2">
+              <button onclick="confirmBooking('${b.id}')" class="btn flex-1 bg-green-600 text-white py-2 text-sm">
                 ✓ 確認
               </button>
-              <button onclick="rejectBooking('${b.id}')" class="btn flex-1 bg-red-100 text-red-600 py-2">
+              <button onclick="rejectBooking('${b.id}')" class="btn flex-1 bg-red-100 text-red-600 py-2 text-sm">
                 ✗ 拒絕
               </button>
             </div>
@@ -213,11 +406,13 @@
     // 載入所有預約
     async function loadAllBookings() {
       const list = document.getElementById('all-bookings');
+      list.innerHTML = '<div class="text-center py-4"><div class="spinner mx-auto"></div></div>';
       
       try {
-        const res = await fetch(`${API_URL}?action=getAllBookings&email=${ADMIN_EMAIL}`);
+        const res = await fetch(`${API_URL}?action=getAllBookings`);
         const data = await res.json();
         
+        allBookingsData = data;
         const confirmed = data.filter(b => b.status === 'confirmed').length;
         document.getElementById('stat-confirmed').textContent = confirmed;
         document.getElementById('stat-total').textContent = data.length;
@@ -261,8 +456,14 @@
             </table>
           </div>
         `;
+        
+        // 更新行事曆
+        if (adminCalendar) {
+          adminCalendar.refetchEvents();
+        }
       } catch(e) {
-        list.innerHTML = '<p class="text-center text-red-500 py-8">載入失敗</p>';
+        console.error('loadAllBookings error:', e);
+        list.innerHTML = '<p class="text-center text-red-500 py-8">載入失敗（請確認已部署最新版 Code.gs）</p>';
       }
     }
 
