@@ -189,6 +189,13 @@
     <p class="loading-text">載入行事曆中<span class="loading-dots"></span></p>
   </div>
   
+  <!-- 匿名爆料橫幅 -->
+  <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 px-4 text-center">
+    <button onclick="showAnonymousModal()" class="text-sm font-medium hover:underline">
+      🤫 我要匿名爆料（不是預約）
+    </button>
+  </div>
+  
   <!-- 頂部導航 -->
   <header class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
@@ -311,6 +318,27 @@
         <!-- 動態載入 -->
       </div>
       <button onclick="closeMyBookingsModal()" class="btn w-full bg-gray-100 text-gray-700 mt-4">關閉</button>
+    </div>
+  </div>
+
+  <!-- 匿名爆料 Modal -->
+  <div id="anonymous-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-xl font-bold mb-4">🤫 匿名爆料</h3>
+      <p class="text-sm text-gray-600 mb-4">您的留言將以匿名方式寄送給老師，不會記錄任何個人資訊。</p>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">留言內容 <span class="text-red-500">*</span></label>
+          <textarea id="anonymous-message" rows="5" placeholder="請輸入您想說的話..." 
+                    class="w-full px-4 py-3 border rounded-xl text-base resize-none" required></textarea>
+        </div>
+      </div>
+      
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeAnonymousModal()" class="btn flex-1 bg-gray-100 text-gray-700">取消</button>
+        <button onclick="submitAnonymous()" class="btn flex-1 bg-purple-600 text-white">匿名送出</button>
+      </div>
     </div>
   </div>
 
@@ -814,6 +842,54 @@
         rejected: 'bg-red-50 border border-red-200',
         cancelled: 'bg-gray-50 border border-gray-200'
       }[status] || 'bg-gray-50';
+    }
+
+    // ========== 匿名爆料 ==========
+    function showAnonymousModal() {
+      document.getElementById('anonymous-modal').classList.remove('hidden');
+    }
+    
+    function closeAnonymousModal() {
+      document.getElementById('anonymous-modal').classList.add('hidden');
+      document.getElementById('anonymous-message').value = '';
+    }
+    
+    async function submitAnonymous() {
+      const message = document.getElementById('anonymous-message').value.trim();
+      
+      if (!message) {
+        showToast('請輸入留言內容', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'submitAnonymous',
+            message: message
+          })
+        });
+        
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch(e) {
+          showToast('送出失敗', 'error');
+          return;
+        }
+        
+        if (data.success) {
+          showToast('已匿名送出！');
+          closeAnonymousModal();
+        } else {
+          showToast(data.error || '送出失敗', 'error');
+        }
+      } catch(e) {
+        showToast('網路錯誤', 'error');
+      }
     }
 
     function showToast(message, type = 'success') {

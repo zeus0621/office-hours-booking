@@ -63,6 +63,8 @@ function doPost(e) {
       return jsonResponse(rejectBooking(data.bookingId, data.reason));
     case 'cancelBooking':
       return jsonResponse(cancelBooking(data.bookingId, data.email));
+    case 'submitAnonymous':
+      return jsonResponse(submitAnonymous(data.message));
     default:
       return jsonResponse({ error: 'Unknown action' });
   }
@@ -417,6 +419,23 @@ function getPendingRequests() {
   }
   
   return pending;
+}
+
+/**
+ * 匿名爆料
+ */
+function submitAnonymous(message) {
+  if (!message || message.trim() === '') {
+    return { success: false, error: '請輸入留言內容' };
+  }
+  
+  // 發送匿名郵件給老師
+  sendEmail(CONFIG.TEACHER_EMAIL,
+    '【匿名爆料】有學生想說的話',
+    '收到一則匿名留言：\n\n' + message + '\n\n---\n此訊息來自研究室輔導預約系統的匿名爆料功能。'
+  );
+  
+  return { success: true };
 }
 
 // ========== 輔助函數 ==========
