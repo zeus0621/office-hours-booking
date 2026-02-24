@@ -61,10 +61,11 @@
     }
     
     .fc-event-booked {
-      background-color: #e5e7eb !important;
-      border-color: #9ca3af !important;
-      color: #6b7280 !important;
+      background-color: #1f2937 !important;
+      border-color: #111827 !important;
+      color: #ffffff !important;
       cursor: not-allowed;
+      font-weight: 600;
     }
     
     .fc-event-mine {
@@ -178,7 +179,7 @@
       <!-- 圖例 -->
       <div class="flex gap-4 text-sm mb-4 justify-center flex-wrap">
         <span class="flex items-center gap-1">
-          <span class="w-3 h-3 rounded bg-gray-400"></span> 已佔用（不可選）
+          <span class="w-3 h-3 rounded bg-gray-800"></span> 已佔用（不可選）
         </span>
         <span class="flex items-center gap-1">
           <span class="w-3 h-3 rounded bg-orange-400"></span> 申請中（不可選）
@@ -422,14 +423,15 @@
               end: new Date(slot.end)
             });
             events.push({
-              title: '已預約',
+              title: '已佔用',
               start: slot.start,
               end: slot.end,
               classNames: ['fc-event-booked'],
               editable: false,
-              display: 'background',  // 背景顯示
-              backgroundColor: '#e5e7eb',
-              borderColor: '#9ca3af'
+              display: 'block',  // 顯示為區塊而非背景
+              backgroundColor: '#1f2937',  // 黑色
+              borderColor: '#111827',
+              textColor: '#ffffff'  // 白字
             });
           });
         }
