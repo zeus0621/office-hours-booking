@@ -116,29 +116,30 @@ function getAvailableSlots(dateStr) {
     console.log('查詢範圍:', startOfWeek, '~', endOfWeek);
     
     // 從所有行事曆取得忙碌時段
-    const busySlots = [];
-    let totalEvents = 0;
-    const loadedCalendars = [];
+    var busySlots = [];
+    var totalEvents = 0;
+    var loadedCalendars = [];
     
-    for (const calendarId of CONFIG.CALENDAR_IDS) {
+    for (var i = 0; i < CONFIG.CALENDAR_IDS.length; i++) {
+      var calendarId = CONFIG.CALENDAR_IDS[i];
       try {
-        const calendar = CalendarApp.getCalendarById(calendarId);
+        var calendar = CalendarApp.getCalendarById(calendarId);
         if (!calendar) {
           console.log('跳過無法存取的日曆: ' + calendarId);
           continue;
         }
         
-        const calendarName = calendar.getName();
-        const events = calendar.getEvents(startOfWeek, endOfWeek);
+        var calendarName = calendar.getName();
+        var events = calendar.getEvents(startOfWeek, endOfWeek);
         console.log('從 ' + calendarName + ' 讀取 ' + events.length + ' 個行程');
         
-        events.forEach(e => {
+        for (var j = 0; j < events.length; j++) {
           busySlots.push({
-            start: e.getStartTime().toISOString(),
-            end: e.getEndTime().toISOString(),
+            start: events[j].getStartTime().toISOString(),
+            end: events[j].getEndTime().toISOString(),
             title: '已佔用'
           });
-        });
+        }
         
         totalEvents += events.length;
         loadedCalendars.push(calendarName);
