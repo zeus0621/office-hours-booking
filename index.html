@@ -583,16 +583,8 @@
         return;
       }
       
-      // 檢查是否與待審核時段重疊
-      const hasPendingConflict = pendingSlots.some(slot => 
-        info.start < slot.end && info.end > slot.start
-      );
-      
-      if (hasPendingConflict) {
-        showToast('此時段已有人申請中，請選擇其他時間', 'error');
-        calendar.unselect();
-        return;
-      }
+      // 允許多人申請同一時段（由老師決定批准哪一個）
+      // 不阻擋「申請中」時段的選取
       
       selectedSlot = {
         start: info.start,
@@ -666,15 +658,8 @@
         return;
       }
       
-      // 檢查是否與待審核時段衝突
-      const hasPendingConflict = pendingSlots.some(slot => 
-        startTime < slot.end && endTime > slot.start
-      );
-      
-      if (hasPendingConflict) {
-        showToast('此時段已有人申請中，請調整', 'error');
-        return;
-      }
+      // 允許多人申請同一時段（由老師決定批准哪一個）
+      // 只檢查是否與「已佔用」時段衝突，不檢查「申請中」時段
       
       try {
         const bookingData = {
