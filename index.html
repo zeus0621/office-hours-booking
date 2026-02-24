@@ -209,6 +209,13 @@
         </div>
         
         <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">您的姓名 <span class="text-red-500">*</span></label>
+          <input type="text" id="booking-name" placeholder="請輸入真實姓名" 
+                 class="w-full px-4 py-3 border rounded-xl text-lg" required>
+          <p class="text-xs text-gray-500 mt-1">請填寫真實姓名，方便老師辨識</p>
+        </div>
+        
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">預約事由 <span class="text-red-500">*</span></label>
           <input type="text" id="booking-purpose" placeholder="例：專題討論、課業問題..." 
                  class="w-full px-4 py-3 border rounded-xl text-lg" required>
@@ -384,6 +391,15 @@
         const res = await fetch(`${API_URL}?action=getSlots&date=${info.startStr}`);
         const data = await res.json();
         
+        // Debug: 顯示從後端收到的資料
+        console.log('📅 行事曆資料:', data);
+        console.log('📅 日曆 ID:', data.calendarId);
+        console.log('📅 已佔用時段:', data.busySlots?.length || 0, '個');
+        console.log('📅 待審核時段:', data.pendingSlots?.length || 0, '個');
+        if (data.error) {
+          console.error('❌ 後端錯誤:', data.error);
+        }
+        
         const events = [];
         
         // 清空並儲存忙碌時段（供 handleSlotSelect 檢查用）
@@ -485,6 +501,8 @@
       
       document.getElementById('booking-time').textContent = 
         `${formatDate(info.start)} ${formatTime(info.start)} ~ ${formatTime(info.end)}`;
+      // 預填姓名（從 Google 帳號取得，但可修改）
+      document.getElementById('booking-name').value = currentUser.name || '';
       document.getElementById('booking-modal').classList.remove('hidden');
     }
 
@@ -499,9 +517,15 @@
     async function submitBooking() {
       if (!selectedSlot || !currentUser) return;
       
+      const name = document.getElementById('booking-name').value.trim();
       const purpose = document.getElementById('booking-purpose').value.trim();
       
       // 驗證必填
+      if (!name) {
+        showToast('請填寫您的姓名', 'error');
+        return;
+      }
+      
       if (!purpose) {
         showToast('請填寫預約事由', 'error');
         return;
@@ -514,7 +538,7 @@
           body: JSON.stringify({
             action: 'submitBooking',
             email: currentUser.email,
-            name: currentUser.name,
+            name: name,  // 使用填寫的姓名，而非 Google 帳號名稱
             startTime: selectedSlot.start.toISOString(),
             endTime: selectedSlot.end.toISOString(),
             purpose: purpose
@@ -537,6 +561,7 @@
 
     function closeModal() {
       document.getElementById('booking-modal').classList.add('hidden');
+      document.getElementById('booking-name').value = '';
       document.getElementById('booking-purpose').value = '';
       selectedSlot = null;
       calendar.unselect();
