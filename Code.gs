@@ -71,8 +71,26 @@ function jsonResponse(data) {
  */
 function getAvailableSlots(dateStr) {
   try {
-    // 解析日期，取得該週的範圍
-    const inputDate = new Date(dateStr);
+    console.log('收到日期參數:', dateStr);
+    
+    // 解析日期（處理各種格式）
+    let inputDate;
+    if (!dateStr) {
+      inputDate = new Date();
+    } else {
+      // 移除時區後綴，只取日期部分
+      const dateOnly = dateStr.split('T')[0];
+      inputDate = new Date(dateOnly + 'T00:00:00');
+    }
+    
+    console.log('解析後日期:', inputDate);
+    
+    if (isNaN(inputDate.getTime())) {
+      console.error('日期解析失敗:', dateStr);
+      return { busySlots: [], pendingSlots: [], error: '日期格式錯誤: ' + dateStr };
+    }
+    
+    // 取得該週的範圍
     const startOfWeek = new Date(inputDate);
     startOfWeek.setDate(inputDate.getDate() - inputDate.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
@@ -80,6 +98,8 @@ function getAvailableSlots(dateStr) {
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
     endOfWeek.setHours(23, 59, 59, 999);
+    
+    console.log('查詢範圍:', startOfWeek, '~', endOfWeek);
     
     // 取得日曆上的忙碌時段（強制使用老師的行事曆）
     console.log('正在存取日曆 ID: ' + CONFIG.CALENDAR_ID);
