@@ -12,7 +12,21 @@
 // ========== 設定 ==========
 const CONFIG = {
   TEACHER_EMAIL: 'scwu@gms.npu.edu.tw',
-  CALENDAR_ID: 'scwu@gms.npu.edu.tw',  // 預約寫入的日曆
+  CALENDAR_ID: 'scwu@gms.npu.edu.tw',  // 預約寫入的日曆（主日曆）
+  
+  // 要讀取忙碌時段的所有行事曆
+  CALENDAR_IDS: [
+    'scwu@gms.npu.edu.tw',  // 主日曆
+    'pccu.edu.tw_fqd7jue2r0kt74pdlbot2gm4ns@group.calendar.google.com',  // 仕傑的工作行事曆
+    '84fqqmqu8hcsimq8n6au7od8mg@group.calendar.google.com',  // 我的家庭真可愛
+    'gms.npu.edu.tw_dktg99t2p2sqlvcoorpd67h7ok@group.calendar.google.com',  // 澎科大校園行事曆
+    'dtlnpu@gms.npu.edu.tw',  // 觀休系共同(新)
+    'win9363s@gms.npu.edu.tw',  // 觀休系共同行事曆
+    'coralwu1215@gmail.com',  // 家人
+    'wyattwu0409@gmail.com',  // 家人
+    'evolymwu0810@gmail.com',  // 家人
+  ],
+  
   ALLOWED_DOMAIN: 'gms.npu.edu.tw',
   BOOKING_HOURS: { start: 8, end: 20 },  // 08:00-20:00
   DEFAULT_DURATION: 60,  // 預設 1 小時（分鐘）
@@ -101,28 +115,39 @@ function getAvailableSlots(dateStr) {
     
     console.log('查詢範圍:', startOfWeek, '~', endOfWeek);
     
-    // 取得日曆上的忙碌時段（強制使用老師的行事曆）
-    console.log('正在存取日曆 ID: ' + CONFIG.CALENDAR_ID);
-    const calendar = CalendarApp.getCalendarById(CONFIG.CALENDAR_ID);
+    // 從所有行事曆取得忙碌時段
+    const busySlots = [];
+    let totalEvents = 0;
+    const loadedCalendars = [];
     
-    if (!calendar) {
-      console.error('無法存取日曆: ' + CONFIG.CALENDAR_ID);
-      console.error('請確認：1. Web App 以「我」身份執行 2. 日曆 ID 正確');
-      return { busySlots: [], pendingSlots: [], error: '無法存取老師的日曆，請聯絡管理員' };
+    for (const calendarId of CONFIG.CALENDAR_IDS) {
+      try {
+        const calendar = CalendarApp.getCalendarById(calendarId);
+        if (!calendar) {
+          console.log('跳過無法存取的日曆: ' + calendarId);
+          continue;
+        }
+        
+        const calendarName = calendar.getName();
+        const events = calendar.getEvents(startOfWeek, endOfWeek);
+        console.log('從 ' + calendarName + ' 讀取 ' + events.length + ' 個行程');
+        
+        events.forEach(e => {
+          busySlots.push({
+            start: e.getStartTime().toISOString(),
+            end: e.getEndTime().toISOString(),
+            title: '已佔用'
+          });
+        });
+        
+        totalEvents += events.length;
+        loadedCalendars.push(calendarName);
+      } catch(err) {
+        console.error('讀取日曆失敗 ' + calendarId + ':', err);
+      }
     }
     
-    // 確認存取的是正確的日曆
-    const calendarName = calendar.getName();
-    console.log('成功存取日曆: ' + calendarName + ' (' + CONFIG.CALENDAR_ID + ')');
-    
-    const events = calendar.getEvents(startOfWeek, endOfWeek);
-    console.log('在 ' + calendarName + ' 找到 ' + events.length + ' 個行程 (' + startOfWeek.toISOString() + ' ~ ' + endOfWeek.toISOString() + ')');
-    
-    const busySlots = events.map(e => ({
-      start: e.getStartTime().toISOString(),
-      end: e.getEndTime().toISOString(),
-      title: '已佔用'
-    }));
+    console.log('總共從 ' + loadedCalendars.length + ' 個日曆讀取 ' + totalEvents + ' 個行程');
     
     // 取得待審核的申請
     const pendingBookings = getPendingBookingsForWeek(startOfWeek, endOfWeek);
