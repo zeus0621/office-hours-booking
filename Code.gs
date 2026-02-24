@@ -170,15 +170,19 @@ function getAvailableSlots(dateStr) {
       }
     }
     
-    console.log('總共 ' + busySlots.length + ' 個忙碌時段');
+    console.log('合併前 ' + busySlots.length + ' 個忙碌時段');
+    
+    // 合併重疊的時段
+    var mergedSlots = mergeOverlappingSlots(busySlots);
+    console.log('合併後 ' + mergedSlots.length + ' 個忙碌時段');
     
     // 取得待審核的申請
-    const pendingBookings = getPendingBookingsForWeek(startOfWeek, endOfWeek);
+    var pendingBookings = getPendingBookingsForWeek(startOfWeek, endOfWeek);
     
     return {
       date: dateStr,
-      calendarId: CONFIG.CALENDAR_ID,  // 回傳日曆 ID 供前端確認
-      busySlots: busySlots,
+      calendarId: CONFIG.CALENDAR_ID,
+      busySlots: mergedSlots,
       pendingSlots: pendingBookings,
       bookingHours: CONFIG.BOOKING_HOURS
     };
@@ -406,6 +410,52 @@ function getPendingRequests() {
 }
 
 // ========== 輔助函數 ==========
+
+/**
+ * 合併重疊的時段
+ */
+function mergeOverlappingSlots(slots) {
+  if (slots.length === 0) return [];
+  
+  // 依開始時間排序
+  slots.sort(function(a, b) {
+    return new Date(a.start) - new Date(b.start);
+  });
+  
+  var merged = [];
+  var current = {
+    start: slots[0].start,
+    end: slots[0].end,
+    title: '已佔用'
+  };
+  
+  for (var i = 1; i < slots.length; i++) {
+    var slotStart = new Date(slots[i].start);
+    var slotEnd = new Date(slots[i].end);
+    var currentEnd = new Date(current.end);
+    
+    // 如果重疊或相鄰，合併
+    if (slotStart <= currentEnd) {
+      // 擴展結束時間
+      if (slotEnd > currentEnd) {
+        current.end = slots[i].end;
+      }
+    } else {
+      // 不重疊，儲存當前並開始新的
+      merged.push(current);
+      current = {
+        start: slots[i].start,
+        end: slots[i].end,
+        title: '已佔用'
+      };
+    }
+  }
+  
+  // 加入最後一個
+  merged.push(current);
+  
+  return merged;
+}
 
 function getBookingSheet() {
   const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
