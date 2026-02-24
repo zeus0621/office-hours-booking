@@ -30,28 +30,12 @@
       100% { transform: rotate(360deg); }
     }
     /* FullCalendar 樣式調整 */
-    .fc {
-      font-size: 12px;
-    }
-    .fc .fc-toolbar-title {
-      font-size: 16px;
-    }
-    .fc .fc-button {
-      padding: 4px 8px;
-      font-size: 12px;
-    }
-    .fc-event-pending {
-      background-color: #f59e0b !important;
-      border-color: #d97706 !important;
-    }
-    .fc-event-confirmed {
-      background-color: #10b981 !important;
-      border-color: #059669 !important;
-    }
-    .fc-event-busy {
-      background-color: #6b7280 !important;
-      border-color: #4b5563 !important;
-    }
+    .fc { font-size: 12px; }
+    .fc .fc-toolbar-title { font-size: 16px; }
+    .fc .fc-button { padding: 4px 8px; font-size: 12px; }
+    .fc-event-pending { background-color: #f59e0b !important; border-color: #d97706 !important; }
+    .fc-event-confirmed { background-color: #10b981 !important; border-color: #059669 !important; }
+    .fc-event-busy { background-color: #374151 !important; border-color: #1f2937 !important; color: #fff !important; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -59,23 +43,22 @@
   <!-- 頂部導航 -->
   <header class="bg-white shadow-sm">
     <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-      <h1 class="text-xl font-bold text-gray-800">🔧 預約管理後台</h1>
-      <div id="admin-info" class="flex items-center gap-3">
-        <!-- 登入後顯示 -->
+      <div class="flex items-center gap-4">
+        <h1 class="text-xl font-bold text-gray-800">🔧 預約管理後台</h1>
+        <a href="index.html" class="text-sm text-blue-600 hover:underline">← 返回預約頁面</a>
       </div>
+      <div id="admin-info" class="flex items-center gap-3"></div>
     </div>
   </header>
 
   <main class="max-w-5xl mx-auto px-4 py-6">
     
-    <!-- 未登入狀態 -->
+    <!-- 未登入/權限不足 -->
     <div id="login-section" class="text-center py-12 bg-white rounded-xl shadow-sm">
       <div class="text-6xl mb-4">🔐</div>
       <h2 class="text-xl font-bold mb-2">管理員登入</h2>
       <p class="text-gray-600 mb-6">請使用教師帳號登入</p>
-      <button id="admin-login-btn" class="btn bg-blue-600 text-white px-8 py-3">
-        使用 Google 登入
-      </button>
+      <button id="admin-login-btn" class="btn bg-blue-600 text-white px-8 py-3">使用 Google 登入</button>
     </div>
 
     <!-- 已登入狀態 -->
@@ -97,18 +80,18 @@
         </div>
       </div>
       
-      <!-- 兩欄佈局：行事曆 + 待審核 -->
+      <!-- 兩欄佈局 -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- 行事曆 -->
         <div class="bg-white rounded-xl shadow-sm p-4">
           <h2 class="font-bold text-gray-800 mb-3">📅 行事曆總覽</h2>
-          <p class="text-xs text-gray-500 mb-3">點選日期查看該時段行程</p>
+          <p class="text-xs text-gray-500 mb-3">點選日期查看該時段行程（含 Google Calendar 已安排行程）</p>
           <div id="admin-calendar"></div>
-          <div class="mt-3 flex gap-4 text-xs">
+          <div class="mt-3 flex gap-4 text-xs flex-wrap">
             <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-amber-500"></span> 待審核</span>
             <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-green-500"></span> 已確認</span>
-            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-gray-500"></span> 忙碌</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-gray-700"></span> 行事曆行程</span>
           </div>
         </div>
         
@@ -141,6 +124,7 @@
       <div class="text-6xl mb-4">⛔</div>
       <h2 class="text-xl font-bold mb-2 text-red-600">權限不足</h2>
       <p class="text-gray-600">此頁面僅限管理員使用</p>
+      <a href="index.html" class="inline-block mt-4 text-blue-600 hover:underline">返回預約頁面</a>
     </div>
   </main>
 
@@ -165,9 +149,32 @@
     
     let currentAdmin = null;
     let adminCalendar = null;
-    let allBookingsData = [];
 
-    // 登入
+    // 頁面載入時檢查登入狀態
+    document.addEventListener('DOMContentLoaded', () => {
+      checkLoginStatus();
+    });
+
+    function checkLoginStatus() {
+      // 從 localStorage 讀取已登入的用戶（與前台共享）
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        if (user.email === ADMIN_EMAIL) {
+          currentAdmin = user;
+          showAdminUI();
+          return;
+        } else {
+          // 已登入但不是管理員
+          document.getElementById('login-section').classList.add('hidden');
+          document.getElementById('no-access').classList.remove('hidden');
+          return;
+        }
+      }
+      // 未登入，顯示登入按鈕
+    }
+
+    // 登入按鈕
     document.getElementById('admin-login-btn').addEventListener('click', () => {
       google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
@@ -197,6 +204,9 @@
           picture: payload.picture || ''
         };
         
+        // 儲存到 localStorage（與前台共享）
+        localStorage.setItem('user', JSON.stringify(currentAdmin));
+        
         showAdminUI();
       } catch(e) {
         showToast('登入失敗', 'error');
@@ -217,6 +227,7 @@
     }
 
     function logout() {
+      localStorage.removeItem('user');
       currentAdmin = null;
       location.reload();
     }
@@ -236,48 +247,77 @@
         dateClick: function(info) {
           showDateDetail(info.dateStr);
         },
-        events: async function(info, successCallback, failureCallback) {
-          try {
-            // 取得預約事件
-            const res = await fetch(`${API_URL}?action=getAllBookings`);
-            const bookings = await res.json();
-            
-            const events = bookings.map(b => ({
-              title: `${b.name} - ${b.purpose || '預約'}`,
-              start: b.startTime,
-              end: b.endTime,
-              classNames: [b.status === 'confirmed' ? 'fc-event-confirmed' : 'fc-event-pending'],
-              extendedProps: { booking: b }
-            }));
-            
-            // 同時取得忙碌時段
-            const startDate = info.startStr.split('T')[0];
-            const endDate = info.endStr.split('T')[0];
-            
-            // 逐日取得忙碌時段（簡化版）
-            const busyRes = await fetch(`${API_URL}?action=getSlots&date=${startDate}`);
-            const slots = await busyRes.json();
-            
-            if (slots.busySlots) {
-              slots.busySlots.forEach(busy => {
-                events.push({
-                  title: '忙碌',
-                  start: busy.start,
-                  end: busy.end,
-                  classNames: ['fc-event-busy'],
-                  display: 'background'
-                });
-              });
-            }
-            
-            successCallback(events);
-          } catch(e) {
-            console.error('載入行事曆失敗', e);
-            failureCallback(e);
-          }
-        }
+        events: fetchCalendarEvents
       });
       adminCalendar.render();
+    }
+
+    // 從 API 取得行事曆事件（包含 Google Calendar 行程）
+    async function fetchCalendarEvents(info, successCallback, failureCallback) {
+      const events = [];
+      
+      try {
+        // 取得預約記錄
+        const bookingRes = await fetch(`${API_URL}?action=getAllBookings`);
+        const bookings = await bookingRes.json();
+        
+        if (Array.isArray(bookings)) {
+          bookings.forEach(b => {
+            // 只顯示有效的預約（pending 或 confirmed）
+            if (b.status === 'pending' || b.status === 'confirmed') {
+              events.push({
+                title: `${b.name} - ${b.purpose || '預約'}`,
+                start: b.startTime,
+                end: b.endTime,
+                classNames: [b.status === 'confirmed' ? 'fc-event-confirmed' : 'fc-event-pending'],
+                extendedProps: { booking: b }
+              });
+            }
+          });
+        }
+        
+        // 取得 Google Calendar 忙碌時段（從 getSlots API）
+        // 計算顯示範圍內的每一天
+        const start = new Date(info.startStr);
+        const end = new Date(info.endStr);
+        const datePromises = [];
+        
+        for (let d = new Date(start); d < end; d.setDate(d.getDate() + 7)) {
+          const dateStr = d.toISOString().split('T')[0];
+          datePromises.push(
+            fetch(`${API_URL}?action=getSlots&date=${dateStr}`)
+              .then(r => r.json())
+              .catch(() => ({}))
+          );
+        }
+        
+        const slotResults = await Promise.all(datePromises);
+        slotResults.forEach(data => {
+          if (data.busySlots) {
+            data.busySlots.forEach(slot => {
+              // 檢查是否已有相同時段的預約事件（避免重複）
+              const isDuplicate = events.some(e => 
+                new Date(e.start).getTime() === new Date(slot.start).getTime() &&
+                new Date(e.end).getTime() === new Date(slot.end).getTime()
+              );
+              if (!isDuplicate) {
+                events.push({
+                  title: slot.title || '行事曆行程',
+                  start: slot.start,
+                  end: slot.end,
+                  classNames: ['fc-event-busy'],
+                  display: 'block'
+                });
+              }
+            });
+          }
+        });
+        
+        successCallback(events);
+      } catch(e) {
+        console.error('載入行事曆失敗', e);
+        successCallback([]);
+      }
     }
 
     // 顯示日期詳情
@@ -293,16 +333,15 @@
       modal.classList.add('flex');
       
       try {
-        // 取得該日的時段資訊
         const res = await fetch(`${API_URL}?action=getSlots&date=${dateStr}`);
         const data = await res.json();
         
         let html = '';
         
-        // 顯示忙碌時段
+        // 顯示忙碌時段（Google Calendar）
         if (data.busySlots && data.busySlots.length > 0) {
           html += '<div class="mb-4">';
-          html += '<h4 class="font-bold text-gray-700 mb-2">📅 已有行程</h4>';
+          html += '<h4 class="font-bold text-gray-700 mb-2">📅 行事曆行程</h4>';
           html += '<div class="space-y-2">';
           data.busySlots.forEach(busy => {
             const start = new Date(busy.start).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
@@ -315,7 +354,7 @@
           html += '</div></div>';
         }
         
-        // 顯示該日預約
+        // 顯示待審核預約
         if (data.pendingSlots && data.pendingSlots.length > 0) {
           html += '<div class="mb-4">';
           html += '<h4 class="font-bold text-amber-600 mb-2">⏳ 待審核預約</h4>';
@@ -389,12 +428,8 @@
               <p><strong>事由：</strong>${b.purpose || '未填寫'}</p>
             </div>
             <div class="flex gap-2">
-              <button onclick="confirmBooking('${b.id}')" class="btn flex-1 bg-green-600 text-white py-2 text-sm">
-                ✓ 確認
-              </button>
-              <button onclick="rejectBooking('${b.id}')" class="btn flex-1 bg-red-100 text-red-600 py-2 text-sm">
-                ✗ 拒絕
-              </button>
+              <button onclick="confirmBooking('${b.id}')" class="btn flex-1 bg-green-600 text-white py-2 text-sm">✓ 確認</button>
+              <button onclick="rejectBooking('${b.id}')" class="btn flex-1 bg-red-100 text-red-600 py-2 text-sm">✗ 拒絕</button>
             </div>
           </div>
         `).join('');
@@ -412,7 +447,10 @@
         const res = await fetch(`${API_URL}?action=getAllBookings`);
         const data = await res.json();
         
-        allBookingsData = data;
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid response');
+        }
+        
         const confirmed = data.filter(b => b.status === 'confirmed').length;
         document.getElementById('stat-confirmed').textContent = confirmed;
         document.getElementById('stat-total').textContent = data.length;
@@ -422,7 +460,6 @@
           return;
         }
         
-        // 按時間排序
         data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
         
         list.innerHTML = `
@@ -437,7 +474,7 @@
                 </tr>
               </thead>
               <tbody>
-                ${data.slice(0, 20).map(b => `
+                ${data.slice(0, 30).map(b => `
                   <tr class="border-t">
                     <td class="px-3 py-2">
                       <p class="font-medium">${b.name}</p>
@@ -446,9 +483,7 @@
                     <td class="px-3 py-2 text-xs">${formatDateTime(b.startTime)}</td>
                     <td class="px-3 py-2 text-xs">${b.purpose || '-'}</td>
                     <td class="px-3 py-2 text-center">
-                      <span class="px-2 py-1 rounded text-xs ${getStatusClass(b.status)}">
-                        ${getStatusText(b.status)}
-                      </span>
+                      <span class="px-2 py-1 rounded text-xs ${getStatusClass(b.status)}">${getStatusText(b.status)}</span>
                     </td>
                   </tr>
                 `).join('')}
@@ -457,10 +492,7 @@
           </div>
         `;
         
-        // 更新行事曆
-        if (adminCalendar) {
-          adminCalendar.refetchEvents();
-        }
+        if (adminCalendar) adminCalendar.refetchEvents();
       } catch(e) {
         console.error('loadAllBookings error:', e);
         list.innerHTML = '<p class="text-center text-red-500 py-8">載入失敗（請確認已部署最新版 Code.gs）</p>';

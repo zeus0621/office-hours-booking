@@ -702,7 +702,31 @@
       // 允許多人申請同一時段（由老師決定批准哪一個）
       // 只檢查是否與「已佔用」時段衝突，不檢查「申請中」時段
       
+      // 顯示載入中
+      const submitBtn = document.querySelector('#booking-modal button[onclick="submitBooking()"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<div class="spinner mx-auto" style="width:20px;height:20px;border-width:2px;"></div>';
+      submitBtn.disabled = true;
+      
       try {
+        // 先從後端再次確認該時段是否可用（防止空窗期預約問題）
+        const checkRes = await fetch(`${API_URL}?action=getSlots&date=${dateStr}`);
+        const checkData = await checkRes.json();
+        
+        if (checkData.busySlots) {
+          const serverConflict = checkData.busySlots.some(slot => 
+            startTime < new Date(slot.end) && endTime > new Date(slot.start)
+          );
+          if (serverConflict) {
+            showToast('此時段已被預約，請重新選擇', 'error');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            closeModal();
+            calendar.refetchEvents();  // 重新載入最新資料
+            return;
+          }
+        }
+        
         const bookingData = {
           action: 'submitBooking',
           email: currentUser.email,
@@ -742,6 +766,9 @@
       } catch(e) {
         console.error('預約錯誤:', e);
         showToast('網路錯誤，請稍後再試', 'error');
+      } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
       }
     }
 
