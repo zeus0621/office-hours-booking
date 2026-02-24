@@ -75,9 +75,10 @@
     }
     
     .fc-event-pending {
-      background-color: #fed7aa !important;
-      border-color: #ea580c !important;
-      color: #9a3412 !important;
+      background-color: #f59e0b !important;
+      border-color: #d97706 !important;
+      color: #ffffff !important;
+      font-weight: 600;
     }
     
     /* 覆蓋 FullCalendar 今天的背景色（避免與申請中混淆） */
@@ -189,19 +190,17 @@
     <p class="loading-text">載入行事曆中<span class="loading-dots"></span></p>
   </div>
   
-  <!-- 匿名爆料橫幅 -->
-  <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 px-4 text-center">
-    <button onclick="showAnonymousModal()" class="text-sm font-medium hover:underline">
-      🤫 我要匿名爆料（不是預約）
-    </button>
-  </div>
-  
   <!-- 頂部導航 -->
   <header class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
       <h1 class="text-lg font-bold text-gray-800">📚 研究室輔導預約</h1>
-      <div id="user-info" class="flex items-center gap-2">
-        <!-- 登入後顯示 -->
+      <div class="flex items-center gap-3">
+        <button onclick="showAnonymousModal()" class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200">
+          🤫 匿名爆料
+        </button>
+        <div id="user-info" class="flex items-center gap-2">
+          <!-- 登入後顯示 -->
+        </div>
       </div>
     </div>
   </header>
@@ -237,10 +236,10 @@
       <!-- 圖例 -->
       <div class="flex gap-4 text-sm mb-4 justify-center flex-wrap">
         <span class="flex items-center gap-1">
-          <span class="w-3 h-3 rounded bg-gray-800"></span> 已佔用（不可選）
+          <span class="w-3 h-3 rounded bg-gray-800"></span> 已佔用
         </span>
         <span class="flex items-center gap-1">
-          <span class="w-3 h-3 rounded bg-orange-400"></span> 申請中（不可選）
+          <span class="w-3 h-3 rounded bg-amber-500"></span> 申請中
         </span>
         <span class="flex items-center gap-1">
           <span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> 今天
@@ -556,9 +555,10 @@
               end: slot.end,
               classNames: ['fc-event-pending'],
               editable: false,
-              display: 'background',  // 背景顯示
-              backgroundColor: '#fed7aa',  // 橘色
-              borderColor: '#ea580c'
+              display: 'block',  // 顯示為區塊
+              backgroundColor: '#f59e0b',  // 亮橘色
+              borderColor: '#d97706',
+              textColor: '#ffffff'
             });
           });
         }
