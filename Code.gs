@@ -45,6 +45,8 @@ function doGet(e) {
       return jsonResponse(getMyBookings(e.parameter.email));
     case 'getPendingRequests':
       return jsonResponse(getPendingRequests());
+    case 'getAllBookings':
+      return jsonResponse(getAllBookings());
     default:
       return HtmlService.createHtmlOutputFromFile('index');
   }
@@ -419,6 +421,30 @@ function getPendingRequests() {
   }
   
   return pending;
+}
+
+/**
+ * 取得所有預約（管理員用）
+ */
+function getAllBookings() {
+  var sheet = getBookingSheet();
+  var data = sheet.getDataRange().getValues();
+  var bookings = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    bookings.push({
+      id: data[i][0],
+      email: data[i][1],
+      name: data[i][2],
+      startTime: data[i][3],
+      endTime: data[i][4],
+      purpose: data[i][5],
+      status: data[i][6],
+      createdAt: data[i][10]
+    });
+  }
+  
+  return bookings;
 }
 
 /**

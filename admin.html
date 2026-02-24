@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>預約管理後台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    .btn {
+      min-height: 44px;
+      font-size: 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .btn:active { transform: scale(0.98); }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  
+  <!-- 頂部導航 -->
+  <header class="bg-white shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-xl font-bold text-gray-800">🔧 預約管理後台</h1>
+      <div id="admin-info" class="flex items-center gap-3">
+        <!-- 登入後顯示 -->
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-6">
+    
+    <!-- 未登入狀態 -->
+    <div id="login-section" class="text-center py-12 bg-white rounded-xl shadow-sm">
+      <div class="text-6xl mb-4">🔐</div>
+      <h2 class="text-xl font-bold mb-2">管理員登入</h2>
+      <p class="text-gray-600 mb-6">請使用教師帳號登入</p>
+      <button id="admin-login-btn" class="btn bg-blue-600 text-white px-8 py-3">
+        使用 Google 登入
+      </button>
+    </div>
+
+    <!-- 已登入狀態 -->
+    <div id="admin-section" class="hidden space-y-6">
+      
+      <!-- 統計 -->
+      <div class="grid grid-cols-3 gap-4">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-yellow-600" id="stat-pending">-</p>
+          <p class="text-sm text-yellow-700">待審核</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-green-600" id="stat-confirmed">-</p>
+          <p class="text-sm text-green-700">已確認</p>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-gray-600" id="stat-total">-</p>
+          <p class="text-sm text-gray-700">總申請</p>
+        </div>
+      </div>
+      
+      <!-- 待審核列表 -->
+      <div class="bg-white rounded-xl shadow-sm">
+        <div class="px-4 py-3 border-b flex items-center justify-between">
+          <h2 class="font-bold text-gray-800">📋 待審核申請</h2>
+          <button onclick="loadPendingRequests()" class="text-sm text-blue-600 hover:underline">重新整理</button>
+        </div>
+        <div id="pending-list" class="p-4">
+          <div class="text-center py-8 text-gray-500">載入中...</div>
+        </div>
+      </div>
+      
+      <!-- 所有預約 -->
+      <div class="bg-white rounded-xl shadow-sm">
+        <div class="px-4 py-3 border-b">
+          <h2 class="font-bold text-gray-800">📅 所有預約記錄</h2>
+        </div>
+        <div id="all-bookings" class="p-4">
+          <div class="text-center py-8 text-gray-500">載入中...</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 權限不足 -->
+    <div id="no-access" class="hidden text-center py-12 bg-white rounded-xl shadow-sm">
+      <div class="text-6xl mb-4">⛔</div>
+      <h2 class="text-xl font-bold mb-2 text-red-600">權限不足</h2>
+      <p class="text-gray-600">此頁面僅限管理員使用</p>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg hidden"></div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwePiDiOdWrH6QcSDwAxINfgHTgSW017QwgnbW5_7YZq1-M2aTmMF_OG9FP0LgIyy5qVg/exec';
+    const ADMIN_EMAIL = 'scwu@gms.npu.edu.tw';
+    const GOOGLE_CLIENT_ID = '265200476894-8l4n76mpki2hstv909729uaoao5rh065.apps.googleusercontent.com';
+    
+    let currentAdmin = null;
+
+    // 登入
+    document.getElementById('admin-login-btn').addEventListener('click', () => {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleAdminLogin
+      });
+      google.accounts.id.prompt();
+    });
+
+    function handleAdminLogin(response) {
+      try {
+        const base64Url = response.credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => 
+          '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        ).join(''));
+        const payload = JSON.parse(jsonPayload);
+        
+        if (payload.email !== ADMIN_EMAIL) {
+          document.getElementById('login-section').classList.add('hidden');
+          document.getElementById('no-access').classList.remove('hidden');
+          return;
+        }
+        
+        currentAdmin = {
+          email: payload.email,
+          name: payload.name || payload.email.split('@')[0],
+          picture: payload.picture || ''
+        };
+        
+        showAdminUI();
+      } catch(e) {
+        showToast('登入失敗', 'error');
+      }
+    }
+
+    function showAdminUI() {
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('admin-section').classList.remove('hidden');
+      document.getElementById('admin-info').innerHTML = `
+        <span class="text-sm text-gray-600">${currentAdmin.name}</span>
+        <button onclick="logout()" class="text-sm text-red-500">登出</button>
+      `;
+      
+      loadPendingRequests();
+      loadAllBookings();
+    }
+
+    function logout() {
+      currentAdmin = null;
+      location.reload();
+    }
+
+    // 載入待審核
+    async function loadPendingRequests() {
+      const list = document.getElementById('pending-list');
+      list.innerHTML = '<div class="text-center py-4"><div class="spinner mx-auto"></div></div>';
+      
+      try {
+        const res = await fetch(`${API_URL}?action=getPendingRequests`);
+        const data = await res.json();
+        
+        document.getElementById('stat-pending').textContent = data.length;
+        
+        if (data.length === 0) {
+          list.innerHTML = '<p class="text-center text-gray-500 py-8">🎉 沒有待審核的申請</p>';
+          return;
+        }
+        
+        list.innerHTML = data.map(b => `
+          <div class="border rounded-lg p-4 mb-3" id="booking-${b.id}">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <p class="font-bold text-lg">${b.name}</p>
+                <p class="text-sm text-gray-500">${b.email}</p>
+              </div>
+              <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">待審核</span>
+            </div>
+            <div class="bg-gray-50 rounded p-2 mb-3">
+              <p class="text-sm"><strong>時間：</strong>${formatDateTime(b.startTime)} ~ ${formatTime(b.endTime)}</p>
+              <p class="text-sm"><strong>事由：</strong>${b.purpose || '未填寫'}</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="confirmBooking('${b.id}')" class="btn flex-1 bg-green-600 text-white py-2">
+                ✓ 確認
+              </button>
+              <button onclick="rejectBooking('${b.id}')" class="btn flex-1 bg-red-100 text-red-600 py-2">
+                ✗ 拒絕
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch(e) {
+        list.innerHTML = '<p class="text-center text-red-500 py-8">載入失敗</p>';
+      }
+    }
+
+    // 載入所有預約
+    async function loadAllBookings() {
+      const list = document.getElementById('all-bookings');
+      
+      try {
+        const res = await fetch(`${API_URL}?action=getAllBookings&email=${ADMIN_EMAIL}`);
+        const data = await res.json();
+        
+        const confirmed = data.filter(b => b.status === 'confirmed').length;
+        document.getElementById('stat-confirmed').textContent = confirmed;
+        document.getElementById('stat-total').textContent = data.length;
+        
+        if (data.length === 0) {
+          list.innerHTML = '<p class="text-center text-gray-500 py-8">尚無預約記錄</p>';
+          return;
+        }
+        
+        // 按時間排序
+        data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+        
+        list.innerHTML = `
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left">學生</th>
+                  <th class="px-3 py-2 text-left">時間</th>
+                  <th class="px-3 py-2 text-left">事由</th>
+                  <th class="px-3 py-2 text-center">狀態</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.slice(0, 20).map(b => `
+                  <tr class="border-t">
+                    <td class="px-3 py-2">
+                      <p class="font-medium">${b.name}</p>
+                      <p class="text-xs text-gray-500">${b.email}</p>
+                    </td>
+                    <td class="px-3 py-2 text-xs">${formatDateTime(b.startTime)}</td>
+                    <td class="px-3 py-2 text-xs">${b.purpose || '-'}</td>
+                    <td class="px-3 py-2 text-center">
+                      <span class="px-2 py-1 rounded text-xs ${getStatusClass(b.status)}">
+                        ${getStatusText(b.status)}
+                      </span>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch(e) {
+        list.innerHTML = '<p class="text-center text-red-500 py-8">載入失敗</p>';
+      }
+    }
+
+    // 確認預約
+    async function confirmBooking(bookingId) {
+      if (!confirm('確定要確認此預約？將會發送通知給學生並加入行事曆。')) return;
+      
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'confirmBooking', bookingId })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('已確認！已發送通知給學生');
+          loadPendingRequests();
+          loadAllBookings();
+        } else {
+          showToast(data.error || '操作失敗', 'error');
+        }
+      } catch(e) {
+        showToast('網路錯誤', 'error');
+      }
+    }
+
+    // 拒絕預約
+    async function rejectBooking(bookingId) {
+      const reason = prompt('拒絕原因（可留空）：');
+      if (reason === null) return;
+      
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'rejectBooking', bookingId, reason })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('已拒絕');
+          loadPendingRequests();
+          loadAllBookings();
+        } else {
+          showToast(data.error || '操作失敗', 'error');
+        }
+      } catch(e) {
+        showToast('網路錯誤', 'error');
+      }
+    }
+
+    // 輔助函數
+    function formatDateTime(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' }) + 
+             ' ' + d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    function formatTime(dateStr) {
+      return new Date(dateStr).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getStatusText(s) {
+      return { pending: '待審核', confirmed: '已確認', rejected: '已拒絕', cancelled: '已取消' }[s] || s;
+    }
+
+    function getStatusClass(s) {
+      return {
+        pending: 'bg-yellow-100 text-yellow-700',
+        confirmed: 'bg-green-100 text-green-700',
+        rejected: 'bg-red-100 text-red-700',
+        cancelled: 'bg-gray-100 text-gray-700'
+      }[s] || 'bg-gray-100';
+    }
+
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-lg ${
+        type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-800 text-white'
+      }`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+  </script>
+</body>
+</html>
