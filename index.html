@@ -173,10 +173,10 @@
       <!-- 圖例 -->
       <div class="flex gap-4 text-sm mb-4 justify-center flex-wrap">
         <span class="flex items-center gap-1">
-          <span class="w-3 h-3 rounded bg-gray-300"></span> 已佔用
+          <span class="w-3 h-3 rounded bg-gray-300"></span> 已佔用（不可選）
         </span>
         <span class="flex items-center gap-1">
-          <span class="w-3 h-3 rounded bg-yellow-300"></span> 申請中
+          <span class="w-3 h-3 rounded bg-yellow-300"></span> 申請中（不可選）
         </span>
         <span class="text-gray-500">｜點選空白處預約</span>
       </div>
@@ -246,6 +246,8 @@
     let calendar;
     let currentUser = null;
     let selectedSlot = null;
+    let busySlots = [];      // 已佔用時段
+    let pendingSlots = [];   // 待審核時段
 
     // ========== 初始化 ==========
     document.addEventListener('DOMContentLoaded', () => {
@@ -276,6 +278,7 @@
         selectable: true,
         selectMirror: true,
         selectMinDistance: 0,
+        selectOverlap: false,  // 禁止選取與現有事件重疊的時段
         selectConstraint: {
           startTime: '08:00',
           endTime: '20:00'
@@ -383,15 +386,27 @@
         
         const events = [];
         
+        // 清空並儲存忙碌時段（供 handleSlotSelect 檢查用）
+        busySlots = [];
+        pendingSlots = [];
+        
         // 已預約的時段（灰色遮蔽）
         if (data.busySlots) {
           data.busySlots.forEach(slot => {
+            // 儲存到 busySlots 陣列
+            busySlots.push({
+              start: new Date(slot.start),
+              end: new Date(slot.end)
+            });
             events.push({
               title: '已預約',
               start: slot.start,
               end: slot.end,
               classNames: ['fc-event-booked'],
-              editable: false
+              editable: false,
+              display: 'background',  // 背景顯示
+              backgroundColor: '#e5e7eb',
+              borderColor: '#9ca3af'
             });
           });
         }
@@ -399,12 +414,20 @@
         // 待審核的申請（黃色）
         if (data.pendingSlots) {
           data.pendingSlots.forEach(slot => {
+            // 儲存到 pendingSlots 陣列
+            pendingSlots.push({
+              start: new Date(slot.start),
+              end: new Date(slot.end)
+            });
             events.push({
               title: '申請中',
               start: slot.start,
               end: slot.end,
               classNames: ['fc-event-pending'],
-              editable: false
+              editable: false,
+              display: 'background',  // 背景顯示
+              backgroundColor: '#fef3c7',
+              borderColor: '#f59e0b'
             });
           });
         }
@@ -429,6 +452,28 @@
       const minTime = new Date(now.getTime() + 30 * 60000);
       if (info.start < minTime) {
         showToast('請至少提前 30 分鐘預約', 'error');
+        calendar.unselect();
+        return;
+      }
+      
+      // 檢查是否與已預約時段重疊
+      const hasConflict = busySlots.some(slot => 
+        info.start < slot.end && info.end > slot.start
+      );
+      
+      if (hasConflict) {
+        showToast('此時段已被預約，請選擇其他時間', 'error');
+        calendar.unselect();
+        return;
+      }
+      
+      // 檢查是否與待審核時段重疊
+      const hasPendingConflict = pendingSlots.some(slot => 
+        info.start < slot.end && info.end > slot.start
+      );
+      
+      if (hasPendingConflict) {
+        showToast('此時段已有人申請中，請選擇其他時間', 'error');
         calendar.unselect();
         return;
       }
