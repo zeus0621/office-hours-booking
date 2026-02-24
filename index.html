@@ -195,7 +195,7 @@
     <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
       <h1 class="text-lg font-bold text-gray-800">📚 研究室輔導預約</h1>
       <div class="flex items-center gap-3">
-        <button onclick="showAnonymousModal()" class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200">
+        <button onclick="showAnonymousModal()" class="text-sm px-3 py-1 bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 font-medium">
           🤫 匿名爆料
         </button>
         <div id="user-info" class="flex items-center gap-2">
@@ -236,7 +236,7 @@
       <!-- 圖例 -->
       <div class="flex gap-4 text-sm mb-4 justify-center flex-wrap">
         <span class="flex items-center gap-1">
-          <span class="w-3 h-3 rounded bg-gray-800"></span> 已佔用
+          <span class="w-3 h-3 rounded bg-gray-800"></span> 已預約
         </span>
         <span class="flex items-center gap-1">
           <span class="w-3 h-3 rounded bg-amber-500"></span> 申請中
@@ -483,9 +483,12 @@
       
       // 確保名稱正確顯示（處理編碼問題）
       const displayName = currentUser.name || currentUser.email.split('@')[0];
+      const isAdmin = currentUser.email === 'scwu@gms.npu.edu.tw';
+      const adminLink = isAdmin ? `<a href="admin.html" class="text-sm text-blue-600 hover:underline">管理</a>` : '';
       document.getElementById('user-info').innerHTML = `
         <img src="${currentUser.picture || ''}" class="w-8 h-8 rounded-full" onerror="this.style.display='none'">
         <span class="text-sm font-medium hidden sm:inline">${displayName}</span>
+        ${adminLink}
         <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">登出</button>
       `;
       
@@ -500,6 +503,11 @@
 
     // ========== 行事曆事件 ==========
     async function fetchEvents(info, successCallback, failureCallback) {
+      // 載入中禁用選取功能，防止預約到尚未載入的時段
+      if (calendar) {
+        calendar.setOption('selectable', false);
+      }
+      
       try {
         const res = await fetch(`${API_URL}?action=getSlots&date=${info.startStr}`);
         const data = await res.json();
@@ -528,7 +536,7 @@
               end: new Date(slot.end)
             });
             events.push({
-              title: '已佔用',
+              title: '已預約',
               start: slot.start,
               end: slot.end,
               classNames: ['fc-event-booked'],
@@ -565,20 +573,26 @@
         
         successCallback(events);
         
-        // 載入完成，隱藏遮罩
+        // 載入完成，隱藏遮罩並啟用選取
         if (!isCalendarLoaded) {
           isCalendarLoaded = true;
           hideLoadingOverlay();
+        }
+        if (calendar) {
+          calendar.setOption('selectable', true);
         }
       } catch(e) {
         console.log('載入行事曆:', e);
         // 返回空陣列而不是失敗
         successCallback([]);
         
-        // 即使失敗也要隱藏遮罩
+        // 即使失敗也要隱藏遮罩並啟用選取
         if (!isCalendarLoaded) {
           isCalendarLoaded = true;
           hideLoadingOverlay();
+        }
+        if (calendar) {
+          calendar.setOption('selectable', true);
         }
       }
     }
