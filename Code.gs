@@ -128,6 +128,11 @@ function getAvailableSlots(dateStr) {
         if (events[j].isAllDayEvent()) {
           continue;
         }
+        // 跳過超過12小時的事件（可能是整天事件）
+        var duration = (events[j].getEndTime() - events[j].getStartTime()) / (1000 * 60 * 60);
+        if (duration >= 12) {
+          continue;
+        }
         busySlots.push({
           start: events[j].getStartTime().toISOString(),
           end: events[j].getEndTime().toISOString(),
@@ -156,6 +161,11 @@ function getAvailableSlots(dateStr) {
           for (var k = 0; k < otherEvents.length; k++) {
             // 跳過全天事件（提醒事項）
             if (otherEvents[k].isAllDayEvent()) {
+              continue;
+            }
+            // 跳過超過12小時的事件
+            var dur = (otherEvents[k].getEndTime() - otherEvents[k].getStartTime()) / (1000 * 60 * 60);
+            if (dur >= 12) {
               continue;
             }
             busySlots.push({
