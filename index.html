@@ -263,8 +263,23 @@
       
       <div class="space-y-4">
         <div class="p-3 bg-gray-50 rounded-lg">
-          <p class="text-sm text-gray-600">預約時間</p>
-          <p id="booking-time" class="text-lg font-semibold"></p>
+          <p class="text-sm text-gray-600 mb-2">預約日期</p>
+          <p id="booking-date" class="text-lg font-semibold mb-3"></p>
+          
+          <div class="flex items-center gap-2">
+            <div class="flex-1">
+              <label class="text-xs text-gray-500">開始時間</label>
+              <input type="time" id="booking-start-time" 
+                     class="w-full px-3 py-2 border rounded-lg text-base" min="08:00" max="19:00">
+            </div>
+            <span class="mt-5 text-gray-400">~</span>
+            <div class="flex-1">
+              <label class="text-xs text-gray-500">結束時間</label>
+              <input type="time" id="booking-end-time" 
+                     class="w-full px-3 py-2 border rounded-lg text-base" min="09:00" max="20:00">
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">可調整預約時間（08:00-20:00）</p>
         </div>
         
         <div>
@@ -584,8 +599,15 @@
         end: info.end
       };
       
-      document.getElementById('booking-time').textContent = 
-        `${formatDate(info.start)} ${formatTime(info.start)} ~ ${formatTime(info.end)}`;
+      // 顯示日期
+      document.getElementById('booking-date').textContent = formatDate(info.start);
+      
+      // 填入時間（可修改）
+      const startTimeStr = info.start.toTimeString().slice(0, 5);  // HH:MM
+      const endTimeStr = info.end.toTimeString().slice(0, 5);
+      document.getElementById('booking-start-time').value = startTimeStr;
+      document.getElementById('booking-end-time').value = endTimeStr;
+      
       // 預填姓名（從 Google 帳號取得，但可修改）
       document.getElementById('booking-name').value = currentUser.name || '';
       document.getElementById('booking-modal').classList.remove('hidden');
@@ -604,6 +626,8 @@
       
       const name = document.getElementById('booking-name').value.trim();
       const purpose = document.getElementById('booking-purpose').value.trim();
+      const startTimeInput = document.getElementById('booking-start-time').value;
+      const endTimeInput = document.getElementById('booking-end-time').value;
       
       // 驗證必填
       if (!name) {
@@ -616,6 +640,42 @@
         return;
       }
       
+      if (!startTimeInput || !endTimeInput) {
+        showToast('請選擇預約時間', 'error');
+        return;
+      }
+      
+      // 組合新的開始和結束時間（使用選擇的日期 + 輸入的時間）
+      const dateStr = selectedSlot.start.toISOString().split('T')[0];
+      const startTime = new Date(`${dateStr}T${startTimeInput}:00`);
+      const endTime = new Date(`${dateStr}T${endTimeInput}:00`);
+      
+      // 驗證時間邏輯
+      if (endTime <= startTime) {
+        showToast('結束時間必須晚於開始時間', 'error');
+        return;
+      }
+      
+      // 檢查是否與已佔用時段衝突
+      const hasConflict = busySlots.some(slot => 
+        startTime < slot.end && endTime > slot.start
+      );
+      
+      if (hasConflict) {
+        showToast('此時段與已佔用時間衝突，請調整', 'error');
+        return;
+      }
+      
+      // 檢查是否與待審核時段衝突
+      const hasPendingConflict = pendingSlots.some(slot => 
+        startTime < slot.end && endTime > slot.start
+      );
+      
+      if (hasPendingConflict) {
+        showToast('此時段已有人申請中，請調整', 'error');
+        return;
+      }
+      
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
@@ -623,9 +683,9 @@
           body: JSON.stringify({
             action: 'submitBooking',
             email: currentUser.email,
-            name: name,  // 使用填寫的姓名，而非 Google 帳號名稱
-            startTime: selectedSlot.start.toISOString(),
-            endTime: selectedSlot.end.toISOString(),
+            name: name,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
             purpose: purpose
           })
         });
@@ -648,6 +708,8 @@
       document.getElementById('booking-modal').classList.add('hidden');
       document.getElementById('booking-name').value = '';
       document.getElementById('booking-purpose').value = '';
+      document.getElementById('booking-start-time').value = '';
+      document.getElementById('booking-end-time').value = '';
       selectedSlot = null;
       calendar.unselect();
     }
