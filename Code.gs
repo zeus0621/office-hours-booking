@@ -124,6 +124,10 @@ function getAvailableSlots(dateStr) {
       console.log('從主日曆讀取 ' + events.length + ' 個行程');
       
       for (var j = 0; j < events.length; j++) {
+        // 跳過全天事件（提醒事項）
+        if (events[j].isAllDayEvent()) {
+          continue;
+        }
         busySlots.push({
           start: events[j].getStartTime().toISOString(),
           end: events[j].getEndTime().toISOString(),
@@ -150,6 +154,10 @@ function getAvailableSlots(dateStr) {
         if (otherCal) {
           var otherEvents = otherCal.getEvents(startOfWeek, endOfWeek);
           for (var k = 0; k < otherEvents.length; k++) {
+            // 跳過全天事件（提醒事項）
+            if (otherEvents[k].isAllDayEvent()) {
+              continue;
+            }
             busySlots.push({
               start: otherEvents[k].getStartTime().toISOString(),
               end: otherEvents[k].getEndTime().toISOString(),
