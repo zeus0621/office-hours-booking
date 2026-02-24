@@ -115,40 +115,54 @@ function getAvailableSlots(dateStr) {
     
     console.log('查詢範圍:', startOfWeek, '~', endOfWeek);
     
-    // 從所有行事曆取得忙碌時段
+    // 取得主日曆的忙碌時段
     var busySlots = [];
-    var totalEvents = 0;
-    var loadedCalendars = [];
+    var calendar = CalendarApp.getCalendarById(CONFIG.CALENDAR_ID);
     
-    for (var i = 0; i < CONFIG.CALENDAR_IDS.length; i++) {
-      var calendarId = CONFIG.CALENDAR_IDS[i];
-      try {
-        var calendar = CalendarApp.getCalendarById(calendarId);
-        if (!calendar) {
-          console.log('跳過無法存取的日曆: ' + calendarId);
-          continue;
-        }
-        
-        var calendarName = calendar.getName();
-        var events = calendar.getEvents(startOfWeek, endOfWeek);
-        console.log('從 ' + calendarName + ' 讀取 ' + events.length + ' 個行程');
-        
-        for (var j = 0; j < events.length; j++) {
-          busySlots.push({
-            start: events[j].getStartTime().toISOString(),
-            end: events[j].getEndTime().toISOString(),
-            title: '已佔用'
-          });
-        }
-        
-        totalEvents += events.length;
-        loadedCalendars.push(calendarName);
-      } catch(err) {
-        console.error('讀取日曆失敗 ' + calendarId + ':', err);
+    if (calendar) {
+      var events = calendar.getEvents(startOfWeek, endOfWeek);
+      console.log('從主日曆讀取 ' + events.length + ' 個行程');
+      
+      for (var j = 0; j < events.length; j++) {
+        busySlots.push({
+          start: events[j].getStartTime().toISOString(),
+          end: events[j].getEndTime().toISOString(),
+          title: '已佔用'
+        });
       }
     }
     
-    console.log('總共從 ' + loadedCalendars.length + ' 個日曆讀取 ' + totalEvents + ' 個行程');
+    // 嘗試讀取其他行事曆（如果失敗不影響主功能）
+    var otherCalendars = [
+      'pccu.edu.tw_fqd7jue2r0kt74pdlbot2gm4ns@group.calendar.google.com',
+      '84fqqmqu8hcsimq8n6au7od8mg@group.calendar.google.com',
+      'gms.npu.edu.tw_dktg99t2p2sqlvcoorpd67h7ok@group.calendar.google.com',
+      'dtlnpu@gms.npu.edu.tw',
+      'win9363s@gms.npu.edu.tw',
+      'coralwu1215@gmail.com',
+      'wyattwu0409@gmail.com',
+      'evolymwu0810@gmail.com'
+    ];
+    
+    for (var i = 0; i < otherCalendars.length; i++) {
+      try {
+        var otherCal = CalendarApp.getCalendarById(otherCalendars[i]);
+        if (otherCal) {
+          var otherEvents = otherCal.getEvents(startOfWeek, endOfWeek);
+          for (var k = 0; k < otherEvents.length; k++) {
+            busySlots.push({
+              start: otherEvents[k].getStartTime().toISOString(),
+              end: otherEvents[k].getEndTime().toISOString(),
+              title: '已佔用'
+            });
+          }
+        }
+      } catch(e) {
+        // 忽略無法存取的行事曆
+      }
+    }
+    
+    console.log('總共 ' + busySlots.length + ' 個忙碌時段');
     
     // 取得待審核的申請
     const pendingBookings = getPendingBookingsForWeek(startOfWeek, endOfWeek);
