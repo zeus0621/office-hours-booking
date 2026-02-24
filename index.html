@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>研究室輔導預約系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+    }
+    
+    /* 手機優化 */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* 大按鈕 */
+    .btn {
+      min-height: 48px;
+      font-size: 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    
+    .btn:active {
+      transform: scale(0.98);
+    }
+    
+    /* FullCalendar 手機優化 */
+    .fc {
+      font-size: 14px;
+    }
+    
+    .fc .fc-toolbar-title {
+      font-size: 18px !important;
+    }
+    
+    .fc .fc-button {
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+    }
+    
+    .fc-timegrid-slot {
+      height: 40px !important;
+    }
+    
+    /* 時段顏色 */
+    .fc-event-available {
+      background-color: #dcfce7 !important;
+      border-color: #16a34a !important;
+      color: #166534 !important;
+      cursor: pointer;
+    }
+    
+    .fc-event-booked {
+      background-color: #e5e7eb !important;
+      border-color: #9ca3af !important;
+      color: #6b7280 !important;
+      cursor: not-allowed;
+    }
+    
+    .fc-event-mine {
+      background-color: #dbeafe !important;
+      border-color: #2563eb !important;
+      color: #1e40af !important;
+    }
+    
+    .fc-event-pending {
+      background-color: #fef3c7 !important;
+      border-color: #f59e0b !important;
+      color: #92400e !important;
+    }
+    
+    /* Modal */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+    }
+    
+    .modal-content {
+      background: white;
+      width: 100%;
+      max-width: 500px;
+      border-radius: 20px 20px 0 0;
+      padding: 24px;
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    
+    @media (min-width: 640px) {
+      .modal {
+        align-items: center;
+      }
+      .modal-content {
+        border-radius: 20px;
+        max-height: 80vh;
+      }
+    }
+    
+    /* 載入動畫 */
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  
+  <!-- 頂部導航 -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-lg font-bold text-gray-800">📚 研究室輔導預約</h1>
+      <div id="user-info" class="flex items-center gap-2">
+        <!-- 登入後顯示 -->
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容 -->
+  <main class="max-w-lg mx-auto px-4 py-4">
+    
+    <!-- 未登入狀態 -->
+    <div id="login-section" class="text-center py-12">
+      <div class="text-6xl mb-4">🎓</div>
+      <h2 class="text-xl font-bold mb-2">歡迎使用輔導預約系統</h2>
+      <p class="text-gray-600 mb-6">請使用學校帳號登入</p>
+      <button id="login-btn" class="btn bg-blue-600 text-white px-8 py-3 inline-flex items-center gap-2">
+        <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        使用 Google 登入
+      </button>
+      <p class="text-sm text-gray-500 mt-4">使用 Google 帳號即可預約</p>
+    </div>
+
+    <!-- 已登入狀態 -->
+    <div id="calendar-section" class="hidden">
+      
+      <!-- 快速操作 -->
+      <div class="flex gap-2 mb-4">
+        <button onclick="showMyBookings()" class="btn flex-1 bg-blue-100 text-blue-700">
+          📋 我的預約
+        </button>
+        <button onclick="calendar.today()" class="btn flex-1 bg-gray-100 text-gray-700">
+          📅 今天
+        </button>
+      </div>
+      
+      <!-- 圖例 -->
+      <div class="flex gap-4 text-sm mb-4 justify-center">
+        <span class="flex items-center gap-1">
+          <span class="w-3 h-3 rounded bg-green-200 border border-green-500"></span> 可預約
+        </span>
+        <span class="flex items-center gap-1">
+          <span class="w-3 h-3 rounded bg-gray-200 border border-gray-400"></span> 已預約
+        </span>
+        <span class="flex items-center gap-1">
+          <span class="w-3 h-3 rounded bg-blue-200 border border-blue-500"></span> 我的
+        </span>
+      </div>
+      
+      <!-- 行事曆 -->
+      <div id="calendar" class="bg-white rounded-xl shadow-sm p-2"></div>
+      
+      <!-- 說明 -->
+      <div class="mt-4 p-4 bg-blue-50 rounded-xl text-sm text-blue-800">
+        <p class="font-semibold mb-1">📌 預約說明</p>
+        <ul class="list-disc list-inside space-y-1 text-blue-700">
+          <li>點選綠色時段即可申請預約</li>
+          <li>可拖曳調整預約時間長度</li>
+          <li>申請後需等待教師確認</li>
+          <li>確認前 10 分鐘會收到提醒</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <!-- 預約 Modal -->
+  <div id="booking-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-xl font-bold mb-4">📝 預約輔導時段</h3>
+      
+      <div class="space-y-4">
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <p class="text-sm text-gray-600">預約時間</p>
+          <p id="booking-time" class="text-lg font-semibold"></p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">預約事由 <span class="text-red-500">*</span></label>
+          <input type="text" id="booking-purpose" placeholder="例：專題討論、課業問題..." 
+                 class="w-full px-4 py-3 border rounded-xl text-lg" required>
+          <p class="text-xs text-gray-500 mt-1">請簡述預約原因</p>
+        </div>
+      </div>
+      
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeModal()" class="btn flex-1 bg-gray-100 text-gray-700">取消</button>
+        <button onclick="submitBooking()" class="btn flex-1 bg-blue-600 text-white">確認申請</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 我的預約 Modal -->
+  <div id="my-bookings-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-xl font-bold mb-4">📋 我的預約</h3>
+      <div id="my-bookings-list" class="space-y-3 max-h-[60vh] overflow-auto">
+        <!-- 動態載入 -->
+      </div>
+      <button onclick="closeMyBookingsModal()" class="btn w-full bg-gray-100 text-gray-700 mt-4">關閉</button>
+    </div>
+  </div>
+
+  <!-- Toast 通知 -->
+  <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg hidden transition-all">
+  </div>
+
+  <script>
+    // ========== 設定 ==========
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyYE6ZuXfWqF56x3aonvU7BLWapr9OQ3oREOxis6r35zI7MFdjwI9M-fQM4mpsZAzJ_4w/exec';
+    const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID';  // Google OAuth Client ID
+    
+    let calendar;
+    let currentUser = null;
+    let selectedSlot = null;
+
+    // ========== 初始化 ==========
+    document.addEventListener('DOMContentLoaded', () => {
+      initCalendar();
+      checkLoginStatus();
+    });
+
+    function initCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'zh-tw',
+        headerToolbar: {
+          left: 'prev,next',
+          center: 'title',
+          right: 'timeGridWeek,timeGridDay'
+        },
+        slotMinTime: '08:00:00',
+        slotMaxTime: '20:00:00',
+        slotDuration: '00:30:00',
+        allDaySlot: false,
+        selectable: true,
+        selectMirror: true,
+        selectMinDistance: 0,
+        selectConstraint: {
+          startTime: '08:00',
+          endTime: '20:00'
+        },
+        select: handleSlotSelect,
+        eventClick: handleEventClick,
+        events: fetchEvents,
+        height: 'auto',
+        expandRows: true,
+        nowIndicator: true,
+        businessHours: {
+          daysOfWeek: [1, 2, 3, 4, 5],
+          startTime: '08:00',
+          endTime: '20:00'
+        }
+      });
+      calendar.render();
+    }
+
+    // ========== Google 登入 ==========
+    function checkLoginStatus() {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showLoggedInUI();
+      }
+    }
+
+    document.getElementById('login-btn').addEventListener('click', () => {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleLogin
+      });
+      google.accounts.id.prompt();
+    });
+
+    function handleGoogleLogin(response) {
+      const payload = JSON.parse(atob(response.credential.split('.')[1]));
+      
+      // 接受任何 Google 帳號
+      if (!payload.email) {
+        showToast('登入失敗', 'error');
+        return;
+      }
+      
+      currentUser = {
+        email: payload.email,
+        name: payload.name,
+        picture: payload.picture
+      };
+      
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      showLoggedInUI();
+      showToast(`歡迎，${currentUser.name}！`);
+    }
+
+    function showLoggedInUI() {
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('calendar-section').classList.remove('hidden');
+      
+      document.getElementById('user-info').innerHTML = `
+        <img src="${currentUser.picture}" class="w-8 h-8 rounded-full">
+        <span class="text-sm font-medium hidden sm:inline">${currentUser.name}</span>
+        <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">登出</button>
+      `;
+      
+      calendar.refetchEvents();
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      currentUser = null;
+      location.reload();
+    }
+
+    // ========== 行事曆事件 ==========
+    async function fetchEvents(info, successCallback, failureCallback) {
+      try {
+        const res = await fetch(`${API_URL}?action=getSlots&date=${info.startStr}`);
+        const data = await res.json();
+        
+        const events = [];
+        
+        // 已預約的時段（灰色遮蔽）
+        data.busySlots.forEach(slot => {
+          events.push({
+            title: '已預約',
+            start: slot.start,
+            end: slot.end,
+            classNames: ['fc-event-booked'],
+            editable: false
+          });
+        });
+        
+        // 待審核的申請（黃色）
+        data.pendingSlots.forEach(slot => {
+          events.push({
+            title: '申請中',
+            start: slot.start,
+            end: slot.end,
+            classNames: ['fc-event-pending'],
+            editable: false
+          });
+        });
+        
+        successCallback(events);
+      } catch(e) {
+        console.error(e);
+        failureCallback(e);
+      }
+    }
+
+    function handleSlotSelect(info) {
+      if (!currentUser) {
+        showToast('請先登入', 'error');
+        calendar.unselect();
+        return;
+      }
+      
+      // 檢查是否提前 30 分鐘
+      const now = new Date();
+      const minTime = new Date(now.getTime() + 30 * 60000);
+      if (info.start < minTime) {
+        showToast('請至少提前 30 分鐘預約', 'error');
+        calendar.unselect();
+        return;
+      }
+      
+      selectedSlot = {
+        start: info.start,
+        end: info.end
+      };
+      
+      document.getElementById('booking-time').textContent = 
+        `${formatDate(info.start)} ${formatTime(info.start)} ~ ${formatTime(info.end)}`;
+      document.getElementById('booking-modal').classList.remove('hidden');
+    }
+
+    function handleEventClick(info) {
+      // 如果是自己的預約，顯示詳情
+      if (info.event.extendedProps.isMine) {
+        // TODO: 顯示詳情/取消選項
+      }
+    }
+
+    // ========== 預約操作 ==========
+    async function submitBooking() {
+      if (!selectedSlot || !currentUser) return;
+      
+      const purpose = document.getElementById('booking-purpose').value.trim();
+      
+      // 驗證必填
+      if (!purpose) {
+        showToast('請填寫預約事由', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'submitBooking',
+            email: currentUser.email,
+            name: currentUser.name,
+            startTime: selectedSlot.start.toISOString(),
+            endTime: selectedSlot.end.toISOString(),
+            purpose: purpose
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('申請已送出，請等待確認！');
+          closeModal();
+          calendar.refetchEvents();
+        } else {
+          showToast(data.error || '申請失敗', 'error');
+        }
+      } catch(e) {
+        showToast('網路錯誤，請稍後再試', 'error');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('booking-modal').classList.add('hidden');
+      document.getElementById('booking-purpose').value = '';
+      selectedSlot = null;
+      calendar.unselect();
+    }
+
+    // ========== 我的預約 ==========
+    async function showMyBookings() {
+      if (!currentUser) return;
+      
+      const list = document.getElementById('my-bookings-list');
+      list.innerHTML = '<div class="text-center py-4"><div class="spinner mx-auto"></div></div>';
+      document.getElementById('my-bookings-modal').classList.remove('hidden');
+      
+      try {
+        const res = await fetch(`${API_URL}?action=getMyBookings&email=${currentUser.email}`);
+        const bookings = await res.json();
+        
+        if (bookings.length === 0) {
+          list.innerHTML = '<p class="text-center text-gray-500 py-8">尚無預約記錄</p>';
+          return;
+        }
+        
+        list.innerHTML = bookings.map(b => `
+          <div class="p-4 rounded-xl ${getStatusBg(b.status)}">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="font-semibold">${formatDate(new Date(b.startTime))}</p>
+                <p class="text-sm">${formatTime(new Date(b.startTime))} ~ ${formatTime(new Date(b.endTime))}</p>
+                ${b.purpose ? `<p class="text-sm text-gray-600 mt-1">${b.purpose}</p>` : ''}
+              </div>
+              <span class="px-2 py-1 rounded text-xs font-medium ${getStatusClass(b.status)}">
+                ${getStatusText(b.status)}
+              </span>
+            </div>
+            ${b.status === 'pending' ? `
+              <button onclick="cancelBooking('${b.id}')" class="mt-2 text-sm text-red-600">取消申請</button>
+            ` : ''}
+          </div>
+        `).join('');
+      } catch(e) {
+        list.innerHTML = '<p class="text-center text-red-500 py-4">載入失敗</p>';
+      }
+    }
+
+    function closeMyBookingsModal() {
+      document.getElementById('my-bookings-modal').classList.add('hidden');
+    }
+
+    async function cancelBooking(bookingId) {
+      if (!confirm('確定要取消此預約嗎？')) return;
+      
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'cancelBooking',
+            bookingId: bookingId,
+            email: currentUser.email
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('已取消');
+          showMyBookings();
+          calendar.refetchEvents();
+        } else {
+          showToast(data.error || '取消失敗', 'error');
+        }
+      } catch(e) {
+        showToast('網路錯誤', 'error');
+      }
+    }
+
+    // ========== 輔助函數 ==========
+    function formatDate(date) {
+      return date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' });
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getStatusText(status) {
+      return { pending: '待確認', confirmed: '已確認', rejected: '未通過', cancelled: '已取消' }[status] || status;
+    }
+
+    function getStatusClass(status) {
+      return {
+        pending: 'bg-yellow-100 text-yellow-800',
+        confirmed: 'bg-green-100 text-green-800',
+        rejected: 'bg-red-100 text-red-800',
+        cancelled: 'bg-gray-100 text-gray-800'
+      }[status] || 'bg-gray-100';
+    }
+
+    function getStatusBg(status) {
+      return {
+        pending: 'bg-yellow-50 border border-yellow-200',
+        confirmed: 'bg-green-50 border border-green-200',
+        rejected: 'bg-red-50 border border-red-200',
+        cancelled: 'bg-gray-50 border border-gray-200'
+      }[status] || 'bg-gray-50';
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `fixed bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-lg transition-all ${
+        type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-800 text-white'
+      }`;
+      toast.classList.remove('hidden');
+      
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+  </script>
+</body>
+</html>
