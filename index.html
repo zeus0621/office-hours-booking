@@ -14,13 +14,13 @@
       --warning: #f59e0b;
       --danger: #dc2626;
     }
-    
+
     /* 手機優化 */
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
-    
+
     /* 大按鈕 */
     .btn {
       min-height: 48px;
@@ -29,29 +29,29 @@
       font-weight: 600;
       transition: all 0.2s;
     }
-    
+
     .btn:active {
       transform: scale(0.98);
     }
-    
+
     /* FullCalendar 手機優化 */
     .fc {
       font-size: 14px;
     }
-    
+
     .fc .fc-toolbar-title {
       font-size: 18px !important;
     }
-    
+
     .fc .fc-button {
       padding: 8px 12px !important;
       font-size: 14px !important;
     }
-    
+
     .fc-timegrid-slot {
       height: 40px !important;
     }
-    
+
     /* 時段顏色 */
     .fc-event-available {
       background-color: #dcfce7 !important;
@@ -59,7 +59,7 @@
       color: #166534 !important;
       cursor: pointer;
     }
-    
+
     .fc-event-booked {
       background-color: #1f2937 !important;
       border-color: #111827 !important;
@@ -67,25 +67,25 @@
       cursor: not-allowed;
       font-weight: 600;
     }
-    
+
     .fc-event-mine {
       background-color: #dbeafe !important;
       border-color: #2563eb !important;
       color: #1e40af !important;
     }
-    
+
     .fc-event-pending {
       background-color: #f59e0b !important;
       border-color: #d97706 !important;
       color: #ffffff !important;
       font-weight: 600;
     }
-    
+
     /* 覆蓋 FullCalendar 今天的背景色（避免與申請中混淆） */
     .fc .fc-day-today {
       background-color: #eff6ff !important;  /* 淺藍色 */
     }
-    
+
     /* Modal */
     .modal {
       position: fixed;
@@ -96,7 +96,7 @@
       justify-content: center;
       z-index: 100;
     }
-    
+
     .modal-content {
       background: white;
       width: 100%;
@@ -105,12 +105,12 @@
       padding: 24px;
       animation: slideUp 0.3s ease;
     }
-    
+
     @keyframes slideUp {
       from { transform: translateY(100%); }
       to { transform: translateY(0); }
     }
-    
+
     @media (min-width: 640px) {
       .modal {
         align-items: center;
@@ -120,7 +120,7 @@
         max-height: 80vh;
       }
     }
-    
+
     /* 載入動畫 */
     .spinner {
       border: 3px solid #f3f3f3;
@@ -130,12 +130,12 @@
       height: 24px;
       animation: spin 1s linear infinite;
     }
-    
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
+
     /* 全屏載入遮罩 */
     .loading-overlay {
       position: fixed;
@@ -148,12 +148,12 @@
       z-index: 9999;
       transition: opacity 0.3s ease;
     }
-    
+
     .loading-overlay.hidden {
       opacity: 0;
       pointer-events: none;
     }
-    
+
     .loading-spinner {
       width: 60px;
       height: 60px;
@@ -162,18 +162,18 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    
+
     .loading-text {
       margin-top: 16px;
       color: #6b7280;
       font-size: 14px;
     }
-    
+
     .loading-dots::after {
       content: '';
       animation: dots 1.5s steps(4, end) infinite;
     }
-    
+
     @keyframes dots {
       0%, 20% { content: ''; }
       40% { content: '.'; }
@@ -183,13 +183,13 @@
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-  
+
   <!-- 載入遮罩 -->
   <div id="loading-overlay" class="loading-overlay">
     <div class="loading-spinner"></div>
     <p class="loading-text">載入行事曆中<span class="loading-dots"></span></p>
   </div>
-  
+
   <!-- 頂部導航 -->
   <header class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
@@ -207,7 +207,7 @@
 
   <!-- 主內容 -->
   <main class="w-full px-2 sm:px-4 py-4" style="max-width: 95%;"
-    
+
     <!-- 未登入狀態 -->
     <div id="login-section" class="text-center py-12">
       <div class="text-6xl mb-4">🎓</div>
@@ -222,7 +222,7 @@
 
     <!-- 已登入狀態 -->
     <div id="calendar-section" class="hidden">
-      
+
       <!-- 快速操作 -->
       <div class="flex gap-2 mb-4 max-w-md mx-auto">
         <button onclick="showMyBookings()" class="btn flex-1 bg-blue-100 text-blue-700">
@@ -232,7 +232,7 @@
           📅 今天
         </button>
       </div>
-      
+
       <!-- 圖例 -->
       <div class="flex gap-4 text-sm mb-4 justify-center flex-wrap">
         <span class="flex items-center gap-1">
@@ -245,10 +245,10 @@
           <span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> 今天
         </span>
       </div>
-      
+
       <!-- 行事曆 -->
       <div id="calendar" class="bg-white rounded-xl shadow-sm p-4"></div>
-      
+
       <!-- 說明 -->
       <div class="mt-4 p-4 bg-blue-50 rounded-xl text-sm text-blue-800">
         <p class="font-semibold mb-1">📌 預約說明</p>
@@ -265,43 +265,43 @@
   <div id="booking-modal" class="modal hidden">
     <div class="modal-content">
       <h3 class="text-xl font-bold mb-4">📝 預約輔導時段</h3>
-      
+
       <div class="space-y-4">
         <div class="p-3 bg-gray-50 rounded-lg">
           <p class="text-sm text-gray-600 mb-2">預約日期</p>
           <p id="booking-date" class="text-lg font-semibold mb-3"></p>
-          
+
           <div class="flex items-center gap-2">
             <div class="flex-1">
               <label class="text-xs text-gray-500">開始時間</label>
-              <input type="time" id="booking-start-time" 
+              <input type="time" id="booking-start-time"
                      class="w-full px-3 py-2 border rounded-lg text-base" min="08:00" max="19:00">
             </div>
             <span class="mt-5 text-gray-400">~</span>
             <div class="flex-1">
               <label class="text-xs text-gray-500">結束時間</label>
-              <input type="time" id="booking-end-time" 
+              <input type="time" id="booking-end-time"
                      class="w-full px-3 py-2 border rounded-lg text-base" min="09:00" max="20:00">
             </div>
           </div>
           <p class="text-xs text-gray-500 mt-1">可調整預約時間（08:00-20:00）</p>
         </div>
-        
+
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">您的姓名 <span class="text-red-500">*</span></label>
-          <input type="text" id="booking-name" placeholder="請輸入真實姓名" 
+          <input type="text" id="booking-name" placeholder="請輸入真實姓名"
                  class="w-full px-4 py-3 border rounded-xl text-lg" required>
           <p class="text-xs text-gray-500 mt-1">請填寫真實姓名，方便老師辨識</p>
         </div>
-        
+
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">預約事由 <span class="text-red-500">*</span></label>
-          <input type="text" id="booking-purpose" placeholder="例：專題討論、課業問題..." 
+          <input type="text" id="booking-purpose" placeholder="例：專題討論、課業問題..."
                  class="w-full px-4 py-3 border rounded-xl text-lg" required>
           <p class="text-xs text-gray-500 mt-1">請簡述預約原因</p>
         </div>
       </div>
-      
+
       <div class="flex gap-3 mt-6">
         <button onclick="closeModal()" class="btn flex-1 bg-gray-100 text-gray-700">取消</button>
         <button onclick="submitBooking()" class="btn flex-1 bg-blue-600 text-white">確認申請</button>
@@ -325,15 +325,15 @@
     <div class="modal-content">
       <h3 class="text-xl font-bold mb-4">🤫 匿名爆料</h3>
       <p class="text-sm text-gray-600 mb-4">您的留言將以匿名方式寄送給老師，不會記錄任何個人資訊。</p>
-      
+
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">留言內容 <span class="text-red-500">*</span></label>
-          <textarea id="anonymous-message" rows="5" placeholder="請輸入您想說的話..." 
+          <textarea id="anonymous-message" rows="5" placeholder="請輸入您想說的話..."
                     class="w-full px-4 py-3 border rounded-xl text-base resize-none" required></textarea>
         </div>
       </div>
-      
+
       <div class="flex gap-3 mt-6">
         <button onclick="closeAnonymousModal()" class="btn flex-1 bg-gray-100 text-gray-700">取消</button>
         <button onclick="submitAnonymous()" class="btn flex-1 bg-purple-600 text-white">匿名送出</button>
@@ -349,18 +349,32 @@
     // ========== 設定 ==========
     const API_URL = 'https://script.google.com/macros/s/AKfycbwmCnlbS-bD9liKfVrPI6Efi1Yw8c8-OADUpK4iyg0yVC7a5UXXpynRVtYh2pGPg_zekQ/exec';
     const GOOGLE_CLIENT_ID = '265200476894-8l4n76mpki2hstv909729uaoao5rh065.apps.googleusercontent.com';
-    
+
     let calendar;
     let currentUser = null;
     let selectedSlot = null;
     let busySlots = [];      // 已佔用時段
     let pendingSlots = [];   // 待審核時段
     let isCalendarLoaded = false;  // 行事曆是否已載入
-    
-    // 隱藏載入遮罩
+    const pageLoadTime = Date.now();  // 頁面載入時間
+    const MIN_LOADING_TIME = 10000;   // 最少載入時間 10 秒
+
+    // 隱藏載入遮罩（至少等待 10 秒）
     function hideLoadingOverlay() {
       const overlay = document.getElementById('loading-overlay');
-      if (overlay) {
+      if (!overlay) return;
+      
+      const elapsed = Date.now() - pageLoadTime;
+      const remaining = MIN_LOADING_TIME - elapsed;
+      
+      if (remaining > 0) {
+        // 還沒到 10 秒，延遲後再隱藏
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+          setTimeout(() => overlay.remove(), 300);
+        }, remaining);
+      } else {
+        // 已經超過 10 秒，立即隱藏
         overlay.classList.add('hidden');
         setTimeout(() => overlay.remove(), 300);
       }
@@ -456,18 +470,18 @@
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
         const payload = JSON.parse(jsonPayload);
-        
+
         if (!payload.email) {
           showToast('登入失敗', 'error');
           return;
         }
-        
+
         currentUser = {
           email: payload.email,
           name: payload.name || payload.email.split('@')[0],
           picture: payload.picture || ''
         };
-        
+
         localStorage.setItem('user', JSON.stringify(currentUser));
         showLoggedInUI();
         showToast(`歡迎，${currentUser.name}！`);
@@ -480,7 +494,7 @@
     function showLoggedInUI() {
       document.getElementById('login-section').classList.add('hidden');
       document.getElementById('calendar-section').classList.remove('hidden');
-      
+
       // 確保名稱正確顯示（處理編碼問題）
       const displayName = currentUser.name || currentUser.email.split('@')[0];
       const isAdmin = currentUser.email === 'scwu@gms.npu.edu.tw';
@@ -491,7 +505,7 @@
         ${adminLink}
         <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">登出</button>
       `;
-      
+
       calendar.refetchEvents();
     }
 
@@ -507,11 +521,11 @@
       if (calendar) {
         calendar.setOption('selectable', false);
       }
-      
+
       try {
         const res = await fetch(`${API_URL}?action=getSlots&date=${info.startStr}`);
         const data = await res.json();
-        
+
         // Debug: 顯示從後端收到的資料
         console.log('📅 行事曆資料:', data);
         console.log('📅 日曆 ID:', data.calendarId);
@@ -520,13 +534,13 @@
         if (data.error) {
           console.error('❌ 後端錯誤:', data.error);
         }
-        
+
         const events = [];
-        
+
         // 清空並儲存忙碌時段（供 handleSlotSelect 檢查用）
         busySlots = [];
         pendingSlots = [];
-        
+
         // 已預約的時段（灰色遮蔽）
         if (data.busySlots) {
           data.busySlots.forEach(slot => {
@@ -548,7 +562,7 @@
             });
           });
         }
-        
+
         // 待審核的申請（黃色）
         if (data.pendingSlots) {
           data.pendingSlots.forEach(slot => {
@@ -570,9 +584,9 @@
             });
           });
         }
-        
+
         successCallback(events);
-        
+
         // 載入完成，隱藏遮罩並啟用選取
         if (!isCalendarLoaded) {
           isCalendarLoaded = true;
@@ -585,7 +599,7 @@
         console.log('載入行事曆:', e);
         // 返回空陣列而不是失敗
         successCallback([]);
-        
+
         // 即使失敗也要隱藏遮罩並啟用選取
         if (!isCalendarLoaded) {
           isCalendarLoaded = true;
@@ -603,7 +617,7 @@
         calendar.unselect();
         return;
       }
-      
+
       // 檢查是否提前 30 分鐘
       const now = new Date();
       const minTime = new Date(now.getTime() + 30 * 60000);
@@ -612,35 +626,35 @@
         calendar.unselect();
         return;
       }
-      
+
       // 檢查是否與已預約時段重疊
-      const hasConflict = busySlots.some(slot => 
+      const hasConflict = busySlots.some(slot =>
         info.start < slot.end && info.end > slot.start
       );
-      
+
       if (hasConflict) {
         showToast('此時段已被預約，請選擇其他時間', 'error');
         calendar.unselect();
         return;
       }
-      
+
       // 允許多人申請同一時段（由老師決定批准哪一個）
       // 不阻擋「申請中」時段的選取
-      
+
       selectedSlot = {
         start: info.start,
         end: info.end
       };
-      
+
       // 顯示日期
       document.getElementById('booking-date').textContent = formatDate(info.start);
-      
+
       // 填入時間（可修改）
       const startTimeStr = info.start.toTimeString().slice(0, 5);  // HH:MM
       const endTimeStr = info.end.toTimeString().slice(0, 5);
       document.getElementById('booking-start-time').value = startTimeStr;
       document.getElementById('booking-end-time').value = endTimeStr;
-      
+
       // 預填姓名（從 Google 帳號取得，但可修改）
       document.getElementById('booking-name').value = currentUser.name || '';
       document.getElementById('booking-modal').classList.remove('hidden');
@@ -656,65 +670,65 @@
     // ========== 預約操作 ==========
     async function submitBooking() {
       if (!selectedSlot || !currentUser) return;
-      
+
       const name = document.getElementById('booking-name').value.trim();
       const purpose = document.getElementById('booking-purpose').value.trim();
       const startTimeInput = document.getElementById('booking-start-time').value;
       const endTimeInput = document.getElementById('booking-end-time').value;
-      
+
       // 驗證必填
       if (!name) {
         showToast('請填寫您的姓名', 'error');
         return;
       }
-      
+
       if (!purpose) {
         showToast('請填寫預約事由', 'error');
         return;
       }
-      
+
       if (!startTimeInput || !endTimeInput) {
         showToast('請選擇預約時間', 'error');
         return;
       }
-      
+
       // 組合新的開始和結束時間（使用選擇的日期 + 輸入的時間）
       const dateStr = selectedSlot.start.toISOString().split('T')[0];
       const startTime = new Date(`${dateStr}T${startTimeInput}:00`);
       const endTime = new Date(`${dateStr}T${endTimeInput}:00`);
-      
+
       // 驗證時間邏輯
       if (endTime <= startTime) {
         showToast('結束時間必須晚於開始時間', 'error');
         return;
       }
-      
+
       // 檢查是否與已佔用時段衝突
-      const hasConflict = busySlots.some(slot => 
+      const hasConflict = busySlots.some(slot =>
         startTime < slot.end && endTime > slot.start
       );
-      
+
       if (hasConflict) {
         showToast('此時段與已佔用時間衝突，請調整', 'error');
         return;
       }
-      
+
       // 允許多人申請同一時段（由老師決定批准哪一個）
       // 只檢查是否與「已佔用」時段衝突，不檢查「申請中」時段
-      
+
       // 顯示載入中
       const submitBtn = document.querySelector('#booking-modal button[onclick="submitBooking()"]');
       const originalText = submitBtn.innerHTML;
       submitBtn.innerHTML = '<div class="spinner mx-auto" style="width:20px;height:20px;border-width:2px;"></div>';
       submitBtn.disabled = true;
-      
+
       try {
         // 先從後端再次確認該時段是否可用（防止空窗期預約問題）
         const checkRes = await fetch(`${API_URL}?action=getSlots&date=${dateStr}`);
         const checkData = await checkRes.json();
-        
+
         if (checkData.busySlots) {
-          const serverConflict = checkData.busySlots.some(slot => 
+          const serverConflict = checkData.busySlots.some(slot =>
             startTime < new Date(slot.end) && endTime > new Date(slot.start)
           );
           if (serverConflict) {
@@ -726,7 +740,7 @@
             return;
           }
         }
-        
+
         const bookingData = {
           action: 'submitBooking',
           email: currentUser.email,
@@ -735,18 +749,18 @@
           endTime: endTime.toISOString(),
           purpose: purpose
         };
-        
+
         console.log('送出預約:', bookingData);
-        
+
         const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },  // Apps Script 需要 text/plain
           body: JSON.stringify(bookingData)
         });
-        
+
         const text = await res.text();
         console.log('後端回應:', text);
-        
+
         let data;
         try {
           data = JSON.parse(text);
@@ -755,7 +769,7 @@
           showToast('伺服器回應格式錯誤', 'error');
           return;
         }
-        
+
         if (data.success) {
           showToast('申請已送出，請等待確認！');
           closeModal();
@@ -785,20 +799,20 @@
     // ========== 我的預約 ==========
     async function showMyBookings() {
       if (!currentUser) return;
-      
+
       const list = document.getElementById('my-bookings-list');
       list.innerHTML = '<div class="text-center py-4"><div class="spinner mx-auto"></div></div>';
       document.getElementById('my-bookings-modal').classList.remove('hidden');
-      
+
       try {
         const res = await fetch(`${API_URL}?action=getMyBookings&email=${currentUser.email}`);
         const bookings = await res.json();
-        
+
         if (bookings.length === 0) {
           list.innerHTML = '<p class="text-center text-gray-500 py-8">尚無預約記錄</p>';
           return;
         }
-        
+
         list.innerHTML = bookings.map(b => `
           <div class="p-4 rounded-xl ${getStatusBg(b.status)}">
             <div class="flex justify-between items-start">
@@ -828,7 +842,7 @@
 
     async function cancelBooking(bookingId) {
       if (!confirm('確定要取消此預約嗎？')) return;
-      
+
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
@@ -839,9 +853,9 @@
             email: currentUser.email
           })
         });
-        
+
         const data = await res.json();
-        
+
         if (data.success) {
           showToast('已取消');
           showMyBookings();
@@ -889,20 +903,20 @@
     function showAnonymousModal() {
       document.getElementById('anonymous-modal').classList.remove('hidden');
     }
-    
+
     function closeAnonymousModal() {
       document.getElementById('anonymous-modal').classList.add('hidden');
       document.getElementById('anonymous-message').value = '';
     }
-    
+
     async function submitAnonymous() {
       const message = document.getElementById('anonymous-message').value.trim();
-      
+
       if (!message) {
         showToast('請輸入留言內容', 'error');
         return;
       }
-      
+
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
@@ -912,7 +926,7 @@
             message: message
           })
         });
-        
+
         const text = await res.text();
         let data;
         try {
@@ -921,7 +935,7 @@
           showToast('送出失敗', 'error');
           return;
         }
-        
+
         if (data.success) {
           showToast('已匿名送出！');
           closeAnonymousModal();
@@ -940,7 +954,7 @@
         type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-800 text-white'
       }`;
       toast.classList.remove('hidden');
-      
+
       setTimeout(() => toast.classList.add('hidden'), 3000);
     }
   </script>
